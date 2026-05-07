@@ -345,21 +345,25 @@ app.patch('/api/oracle/department', async (req, res) => {
     const https = require('https');
     const agent = new https.Agent({ rejectUnauthorized: false });
 
-    const response = await axios.patch(
-      url,
-      {
-        "ActionCode": "ASG_CHANGE",
-        "DepartmentName": DepartmentName
-      },
-      {
-        httpsAgent: agent,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': process.env.ORACLE_AUTH || 'Basic dXNlcl9yMTRfYTJmOnFvMkgqNlcj',
-          'Effective-Of': `RangeMode=UPDATE;RangeStartDate=${effectiveDate};RangeEndDate=4712-12-31`
-        }
-      }
-    );
+    const headers = {
+      'Content-Type': 'application/json',
+      'Authorization': process.env.ORACLE_AUTH || 'Basic dXNlcl9yMTRfYTJmOnFvMkgqNlcj',
+      'Effective-Of': `RangeMode=UPDATE;RangeStartDate=${effectiveDate}`
+    };
+
+    const body = {
+      "ActionCode": "ASG_CHANGE",
+      "DepartmentName": DepartmentName
+    };
+
+    console.log('Sending PATCH to Oracle:', url);
+    console.log('Headers:', JSON.stringify(headers));
+    console.log('Body:', JSON.stringify(body));
+
+    const response = await axios.patch(url, body, {
+      httpsAgent: agent,
+      headers: headers
+    });
 
     console.log('Department change success:', response.status);
     res.json({ 
