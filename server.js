@@ -399,14 +399,14 @@ app.get('/api/oracle/departments', async (req, res) => {
     });
 
     console.log('Departments count:', response.data.count);
-    console.log('First dept:', response.data.items?.[0]);
+    console.log('Raw first item from Oracle:', JSON.stringify(response.data.items?.[0]));
 
-    const departments = response.data.items
-      .filter(d => d.DepartmentName)
+    const departments = (response.data.items || [])
       .map(d => ({
-        DepartmentId: d.DepartmentId,
-        DepartmentName: d.DepartmentName
-      }));
+        DepartmentId: d.OrganizationId || d.DepartmentId || d.id,
+        DepartmentName: d.Name || d.DepartmentName || d.OrganizationName || 'Unknown Name'
+      }))
+      .filter(d => d.DepartmentName !== 'Unknown Name');
 
     res.json({ departments });
 
