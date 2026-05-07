@@ -382,30 +382,35 @@ app.get('/api/oracle/departments', async (req, res) => {
     const https = require('https');
     const agent = new https.Agent({ rejectUnauthorized: false });
 
-    const baseUrl = process.env.ORACLE_BASE_URL || 'https://fa-eubg-test-saasfademo1.ds-fa.oraclepdemos.com';
-    const url = `${baseUrl.replace(/\/$/, '')}/hcmRestApi/resources/11.13.18.05/departments?limit=50&fields=DepartmentId,DepartmentName&onlyData=true`;
+    const url = 'https://fa-eubg-test-saasfademo1.ds-fa.oraclepdemos.com/hcmRestApi/resources/11.13.18.05/departments?limit=100&fields=DepartmentId,DepartmentName&onlyData=true';
+
+    console.log('Fetching departments from:', url);
 
     const response = await axios.get(url, {
       httpsAgent: agent,
       headers: {
-        'Authorization': process.env.ORACLE_AUTH || 'Basic dXNlcl9yMTRfYTJmOnFvMkgqNlcj',
+        'Authorization': 'Basic dXNlcl9yMTRfYTJmOnFvMkgqNlcj',
         'Content-Type': 'application/json'
       }
     });
 
-    const departments = response.data.items.map(d => ({
-      DepartmentId: d.DepartmentId,
-      DepartmentName: d.DepartmentName
-    }));
+    console.log('Departments count:', response.data.count);
+    console.log('First dept:', response.data.items?.[0]);
+
+    const departments = response.data.items
+      .filter(d => d.DepartmentName)
+      .map(d => ({
+        DepartmentId: d.DepartmentId,
+        DepartmentName: d.DepartmentName
+      }));
 
     res.json({ departments });
 
   } catch (err) {
-    console.error('Departments fetch error:', err.response?.data || err.message);
-    const errorDetails = err.response?.data || err.message;
+    console.error('Departments error status:', err.response?.status);
+    console.error('Departments error:', JSON.stringify(err.response?.data || err.message));
     res.status(500).json({ 
-      error: 'Failed to fetch departments from Oracle',
-      details: errorDetails
+      error: err.response?.data || err.message 
     });
   }
 });
