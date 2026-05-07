@@ -386,7 +386,7 @@ app.get('/api/oracle/departments', async (req, res) => {
     const https = require('https');
     const agent = new https.Agent({ rejectUnauthorized: false });
 
-    const url = 'https://fa-eubg-test-saasfademo1.ds-fa.oraclepdemos.com/hcmRestApi/resources/11.13.18.05/departments?limit=100&fields=DepartmentId,DepartmentName&onlyData=true';
+    const url = 'https://fa-eubg-test-saasfademo1.ds-fa.oraclepdemos.com/hcmRestApi/resources/11.13.18.05/departments?limit=100&onlyData=true';
 
     console.log('Fetching departments from:', url);
 
