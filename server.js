@@ -347,7 +347,7 @@ app.patch('/api/oracle/department', async (req, res) => {
 
     const headers = {
       'Content-Type': 'application/json',
-      'Authorization': process.env.ORACLE_AUTH || 'Basic dXNlcl9yMTRfYTJmOnFvMkgqNlcj',
+      'Authorization': 'Basic dXNlcl9yMTRfYTJmOnFvMkgqNlcj',
       'Effective-Of': `RangeMode=UPDATE;RangeStartDate=${effectiveDate}`
     };
 
@@ -411,10 +411,10 @@ app.get('/api/oracle/departments', async (req, res) => {
     res.json({ departments });
 
   } catch (err) {
-    console.error('Departments error status:', err.response?.status);
-    console.error('Departments error:', JSON.stringify(err.response?.data || err.message));
+    const errorDetails = err.response?.data ? JSON.stringify(err.response.data) : err.message;
+    console.error('Departments error:', errorDetails);
     res.status(500).json({ 
-      error: err.response?.data || err.message 
+      error: errorDetails
     });
   }
 });
