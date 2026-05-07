@@ -219,7 +219,7 @@ app.get('/api/oracle/worker', async (req, res) => {
 app.get('/api/oracle/manager', async (req, res) => {
   const manager_person_number = req.query.manager_person_number?.toString().trim();
   try {
-    const url = `${process.env.ORACLE_BASE_URL || 'https://fa-eubg-test-saasfademo1.ds-fa.oraclepdemos.com'}//hcmRestApi/resources/11.13.18.05/workers?q=PersonNumber%3D${manager_person_number}&expand=workRelationships.assignments`;
+    const url = `${process.env.ORACLE_BASE_URL || 'https://fa-eubg-test-saasfademo1.ds-fa.oraclepdemos.com'}/hcmRestApi/resources/11.13.18.05/workers?q=PersonNumber%3D${manager_person_number}&expand=workRelationships.assignments`;
     
     const https = require('https');
     const agent = new https.Agent({ rejectUnauthorized: false });
@@ -383,7 +383,7 @@ app.get('/api/oracle/departments', async (req, res) => {
     const agent = new https.Agent({ rejectUnauthorized: false });
 
     const baseUrl = process.env.ORACLE_BASE_URL || 'https://fa-eubg-test-saasfademo1.ds-fa.oraclepdemos.com';
-    const url = `${baseUrl.replace(/\/$/, '')}/hcmRestApi/resources/11.13.18.05/departments?limit=50&fields=DepartmentId,DepartmentName`;
+    const url = `${baseUrl.replace(/\/$/, '')}/hcmRestApi/resources/11.13.18.05/departments?limit=50&fields=DepartmentId,DepartmentName&onlyData=true`;
 
     const response = await axios.get(url, {
       httpsAgent: agent,
@@ -401,8 +401,12 @@ app.get('/api/oracle/departments', async (req, res) => {
     res.json({ departments });
 
   } catch (err) {
-    console.error('Departments fetch error:', err.message);
-    res.status(500).json({ error: err.message });
+    console.error('Departments fetch error:', err.response?.data || err.message);
+    const errorDetails = err.response?.data || err.message;
+    res.status(500).json({ 
+      error: 'Failed to fetch departments from Oracle',
+      details: errorDetails
+    });
   }
 });
 
