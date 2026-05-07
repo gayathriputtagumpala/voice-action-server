@@ -206,7 +206,8 @@ app.get('/api/oracle/worker', async (req, res) => {
       currentManagerAssignmentId: currentManager?.ManagerAssignmentId,
       currentManagerNumber: currentManagerNumber || currentManager?.ManagerAssignmentNumber,
       currentManagerName: currentManagerName,
-      managerSelfLink: managerSelfLink
+      managerSelfLink: managerSelfLink,
+      DepartmentName: assignment?.DepartmentName || 'Not Assigned'
     });
   } catch (error) {
     console.error('Oracle Worker Error:', error.response?.data || error.message);
@@ -316,6 +317,92 @@ app.post('/api/oracle/assign', async (req, res) => {
     res.status(500).json({ 
       error: err.response?.data || err.message 
     });
+  }
+});
+
+// 6. Oracle Proxy - Change Department
+app.patch('/api/oracle/department', async (req, res) => {
+  try {
+    const { 
+      encodedPersonId, 
+      WorkRelationshipId, 
+      encodedAssignmentId,
+      DepartmentName,
+      EffectiveDate
+    } = req.body;
+
+    console.log('=== CHANGE DEPARTMENT REQUEST ===');
+    console.log('Department:', DepartmentName);
+    console.log('EffectiveDate:', EffectiveDate);
+
+    const effectiveDate = EffectiveDate || new Date().toISOString().split('T')[0];
+
+    const baseUrl = process.env.ORACLE_BASE_URL || 'https://fa-eubg-test-saasfademo1.ds-fa.oraclepdemos.com';
+    const url = `${baseUrl.replace(/\/$/, '')}/hcmRestApi/resources/11.13.18.05/workers/${encodedPersonId}/child/workRelationships/${WorkRelationshipId}/child/assignments/${encodedAssignmentId}`;
+
+    console.log('PATCH URL:', url);
+
+    const https = require('https');
+    const agent = new https.Agent({ rejectUnauthorized: false });
+
+    const response = await axios.patch(
+      url,
+      {
+        "ActionCode": "ASG_CHANGE",
+        "DepartmentName": DepartmentName
+      },
+      {
+        httpsAgent: agent,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': process.env.ORACLE_AUTH || 'Basic dXNlcl9yMTRfYTJmOnFvMkgqNlcj',
+          'Effective-Of': `RangeMode=UPDATE;RangeStartDate=${effectiveDate};RangeEndDate=4712-12-31`
+        }
+      }
+    );
+
+    console.log('Department change success:', response.status);
+    res.json({ 
+      success: true, 
+      message: `Department changed to ${DepartmentName} successfully` 
+    });
+
+  } catch (err) {
+    console.error('Department change error:', err.response?.status);
+    console.error('Error data:', JSON.stringify(err.response?.data));
+    res.status(500).json({ 
+      error: err.response?.data || err.message 
+    });
+  }
+});
+
+// 7. Oracle Proxy - Get Available Departments
+app.get('/api/oracle/departments', async (req, res) => {
+  try {
+    const https = require('https');
+    const agent = new https.Agent({ rejectUnauthorized: false });
+
+    const baseUrl = process.env.ORACLE_BASE_URL || 'https://fa-eubg-test-saasfademo1.ds-fa.oraclepdemos.com';
+    const url = `${baseUrl.replace(/\/$/, '')}/hcmRestApi/resources/11.13.18.05/departments?limit=50&fields=DepartmentId,DepartmentName`;
+
+    const response = await axios.get(url, {
+      httpsAgent: agent,
+      headers: {
+        'Authorization': process.env.ORACLE_AUTH || 'Basic dXNlcl9yMTRfYTJmOnFvMkgqNlcj',
+        'Content-Type': 'application/json'
+      }
+    });
+
+    const departments = response.data.items.map(d => ({
+      DepartmentId: d.DepartmentId,
+      DepartmentName: d.DepartmentName
+    }));
+
+    res.json({ departments });
+
+  } catch (err) {
+    console.error('Departments fetch error:', err.message);
+    res.status(500).json({ error: err.message });
   }
 });
 
