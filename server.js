@@ -357,16 +357,12 @@ app.patch('/api/oracle/department', async (req, res) => {
 
     console.log('Request body:', JSON.stringify(body));
 
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const futureDate = tomorrow.toISOString().split('T')[0];
-
     const response = await axios.patch(url, body, {
       httpsAgent: agent,
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Basic dXNlcl9yMTRfYTJmOnFvMkgqNlcj',
-        'Effective-Of': `RangeMode=UPDATE;RangeStartDate=${futureDate}`
+        'Effective-Of': 'RangeMode=UPDATE;RangeStartDate=2025-05-01;RangeEndDate=4712-12-31'
       }
     });
 
