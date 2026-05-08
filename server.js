@@ -314,8 +314,8 @@ app.post('/api/oracle/assign', async (req, res) => {
   } catch (err) {
     console.error('ASSIGN ERROR:', err.response?.status);
     console.error('ASSIGN ERROR DATA:', JSON.stringify(err.response?.data));
-    res.status(500).json({ 
-      error: err.response?.data || err.message 
+    res.status(err.response?.status || 500).json({ 
+      error: err.response?.data?.detail || err.response?.data?.title || err.message 
     });
   }
 });
@@ -344,10 +344,13 @@ app.patch('/api/oracle/department', async (req, res) => {
     const https = require('https');
     const agent = new https.Agent({ rejectUnauthorized: false });
 
-    // Try with DepartmentId first, fallback to DepartmentName
-    const body = DepartmentId 
-      ? { "ActionCode": "ASG_CHANGE", "DepartmentId": Number(DepartmentId) }
-      : { "ActionCode": "ASG_CHANGE", "DepartmentName": DepartmentName };
+    // Send both DepartmentId and OrganizationId to be safe
+    const body = { 
+      "ActionCode": "ASG_CHANGE", 
+      "DepartmentId": DepartmentId ? Number(DepartmentId) : undefined,
+      "OrganizationId": DepartmentId ? Number(DepartmentId) : undefined,
+      "DepartmentName": DepartmentName 
+    };
 
     console.log('Request body:', JSON.stringify(body));
 
@@ -356,7 +359,7 @@ app.patch('/api/oracle/department', async (req, res) => {
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Basic dXNlcl9yMTRfYTJmOnFvMkgqNlcj',
-        'Effective-Of': `RangeMode=UPDATE;RangeStartDate=${effectiveDate};RangeEndDate=4712-12-31`
+        'Effective-Of': `RangeMode=UPDATE;RangeStartDate=${effectiveDate}`
       }
     });
 
