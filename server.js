@@ -207,7 +207,8 @@ app.get('/api/oracle/worker', async (req, res) => {
       currentManagerNumber: currentManagerNumber || currentManager?.ManagerAssignmentNumber,
       currentManagerName: currentManagerName,
       managerSelfLink: managerSelfLink,
-      DepartmentName: assignment?.DepartmentName || 'Not Assigned'
+      DepartmentName: assignment?.DepartmentName || 'Not Assigned',
+      BusinessUnitId: assignment?.BusinessUnitId
     });
   } catch (error) {
     console.error('Oracle Worker Error:', error.response?.data || error.message);
@@ -385,15 +386,21 @@ app.patch('/api/oracle/department', async (req, res) => {
   }
 });
 
-// 7. Oracle Proxy - Get Available Departments
 app.get('/api/oracle/departments', async (req, res) => {
+  const { BusinessUnitId } = req.query;
   try {
     const https = require('https');
     const agent = new https.Agent({ rejectUnauthorized: false });
 
-    const url = 'https://fa-eubg-test-saasfademo1.ds-fa.oraclepdemos.com/hcmRestApi/resources/11.13.18.05/departments?limit=100&onlyData=true';
+    // Use hcmDepartmentsLOV which supports BU filtering
+    const baseUrl = 'https://fa-eubg-test-saasfademo1.ds-fa.oraclepdemos.com/hcmRestApi/resources/11.13.18.05';
+    let url = `${baseUrl}/hcmDepartmentsLOV?onlyData=true&limit=500`;
+    
+    if (BusinessUnitId && BusinessUnitId !== 'undefined') {
+      url += `&q=BusinessUnitId=${BusinessUnitId}`;
+    }
 
-    console.log('Fetching departments from:', url);
+    console.log('Fetching filtered departments from:', url);
 
     const response = await axios.get(url, {
       httpsAgent: agent,
@@ -403,15 +410,11 @@ app.get('/api/oracle/departments', async (req, res) => {
       }
     });
 
-    console.log('Departments count:', response.data.count);
-    console.log('Raw first item from Oracle:', JSON.stringify(response.data.items?.[0]));
-
     const departments = (response.data.items || [])
       .map(d => ({
-        DepartmentId: d.OrganizationId || d.DepartmentId || d.id,
-        DepartmentName: d.Name || d.DepartmentName || d.OrganizationName || 'Unknown Name'
-      }))
-      .filter(d => d.DepartmentName !== 'Unknown Name');
+        DepartmentId: d.OrganizationId,
+        DepartmentName: d.OrganizationName
+      }));
 
     res.json({ departments });
 
