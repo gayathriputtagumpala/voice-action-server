@@ -344,13 +344,14 @@ app.patch('/api/oracle/department', async (req, res) => {
     const https = require('https');
     const agent = new https.Agent({ rejectUnauthorized: false });
 
-    // Send both DepartmentId and OrganizationId to be safe
-    const body = { 
-      "ActionCode": "ASG_CHANGE", 
-      "DepartmentId": DepartmentId ? Number(DepartmentId) : undefined,
-      "OrganizationId": DepartmentId ? Number(DepartmentId) : undefined,
-      "DepartmentName": DepartmentName 
-    };
+    // IMPORTANT: Sending BOTH DepartmentId and DepartmentName causes PER-1530231 error.
+    // We must send ONLY ONE.
+    const body = { "ActionCode": "ASG_CHANGE" };
+    if (DepartmentId) {
+      body.DepartmentId = Number(DepartmentId);
+    } else {
+      body.DepartmentName = DepartmentName;
+    }
 
     console.log('Request body:', JSON.stringify(body));
 
