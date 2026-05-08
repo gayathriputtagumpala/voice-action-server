@@ -146,8 +146,8 @@ app.get('/api/oracle/worker', async (req, res) => {
     const workersIdx = linkParts?.indexOf('workers');
     const assignmentsIdx = linkParts?.lastIndexOf('assignments');
     
-    const encodedPersonId = workersIdx >= 0 ? linkParts[workersIdx + 1] : null;
-    const encodedAssignmentId = assignmentsIdx >= 0 ? linkParts[assignmentsIdx + 1] : null;
+    const encodedPersonId = workersIdx >= 0 ? linkParts[workersIdx + 1].split('?')[0] : null;
+    const encodedAssignmentId = assignmentsIdx >= 0 ? linkParts[assignmentsIdx + 1].split('?')[0] : null;
     const workRelationshipId = workRel?.PeriodOfServiceId || workRel?.WorkRelationshipId; // numeric, use as-is
 
     console.log('Encoded PersonId:', encodedPersonId);
