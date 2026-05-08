@@ -375,14 +375,14 @@ app.patch('/api/oracle/department', async (req, res) => {
     });
 
   } catch (err) {
-    console.error('Department error:', err.response?.status);
-    console.error('Department error data:', JSON.stringify(err.response?.data));
-    res.status(500).json({ 
-      version: "1.1.0-FIX",
-      error: err.response?.data?.detail || 
-             err.response?.data?.title ||
-             JSON.stringify(err.response?.data) || 
-             err.message 
+    const status = err.response?.status || 500;
+    const errorData = err.response?.data;
+    console.error(`Department Error [${status}]:`, JSON.stringify(errorData || err.message));
+    
+    res.status(status).json({ 
+      version: "1.1.0-VERBOSE",
+      error: errorData || err.message,
+      detail: err.message
     });
   }
 });
