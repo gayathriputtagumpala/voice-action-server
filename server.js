@@ -395,7 +395,7 @@ app.get('/api/oracle/departments', async (req, res) => {
 
     // Use the stable departments resource
     const baseUrl = 'https://fa-eubg-test-saasfademo1.ds-fa.oraclepdemos.com/hcmRestApi/resources/11.13.18.05';
-    let url = `${baseUrl}/departments?onlyData=true&limit=500&q=Status='A'`;
+    let url = `${baseUrl}/departments?onlyData=true&limit=500`;
 
     console.log('Fetching departments from stable resource:', url);
 
