@@ -327,12 +327,14 @@ app.patch('/api/oracle/department', async (req, res) => {
       encodedPersonId, 
       WorkRelationshipId, 
       encodedAssignmentId,
+      OrganizationId,
       DepartmentName,
       EffectiveDate
     } = req.body;
 
     console.log('=== CHANGE DEPARTMENT REQUEST ===');
-    console.log('Department:', DepartmentName);
+    console.log('Department Name:', DepartmentName);
+    console.log('OrganizationId:', OrganizationId);
     console.log('EffectiveDate:', EffectiveDate);
 
     const effectiveDate = EffectiveDate || new Date().toISOString().split('T')[0];
@@ -353,6 +355,7 @@ app.patch('/api/oracle/department', async (req, res) => {
 
     const body = {
       "ActionCode": "ASG_CHANGE",
+      "OrganizationId": OrganizationId ? Number(OrganizationId) : undefined,
       "DepartmentName": DepartmentName
     };
 
