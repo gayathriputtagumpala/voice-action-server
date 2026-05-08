@@ -369,6 +369,7 @@ app.patch('/api/oracle/department', async (req, res) => {
     console.log('Department change success:', response.status);
     res.json({ 
       success: true, 
+      version: "1.1.0-FIX",
       message: `Department changed to ${DepartmentName} successfully` 
     });
 
@@ -376,6 +377,7 @@ app.patch('/api/oracle/department', async (req, res) => {
     console.error('Department error:', err.response?.status);
     console.error('Department error data:', JSON.stringify(err.response?.data));
     res.status(500).json({ 
+      version: "1.1.0-FIX",
       error: err.response?.data?.detail || 
              err.response?.data?.title ||
              JSON.stringify(err.response?.data) || 
