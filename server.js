@@ -208,7 +208,8 @@ app.get('/api/oracle/worker', async (req, res) => {
       currentManagerName: currentManagerName,
       managerSelfLink: managerSelfLink,
       DepartmentName: assignment?.DepartmentName || 'Not Assigned',
-      BusinessUnitId: assignment?.BusinessUnitId
+      BusinessUnitId: assignment?.BusinessUnitId,
+      BusinessUnitName: workRel?.BusinessUnitName || assignment?.BusinessUnitName
     });
   } catch (error) {
     console.error('Oracle Worker Error:', error.response?.data || error.message);
@@ -387,26 +388,16 @@ app.patch('/api/oracle/department', async (req, res) => {
 });
 
 app.get('/api/oracle/departments', async (req, res) => {
-  const { encodedPersonId, WorkRelationshipId, encodedAssignmentId } = req.query;
+  const { BusinessUnitName } = req.query;
   try {
     const https = require('https');
     const agent = new https.Agent({ rejectUnauthorized: false });
 
-    if (!encodedPersonId || !encodedAssignmentId) {
-       // Fallback to general list if no worker context
-       const url = 'https://fa-eubg-test-saasfademo1.ds-fa.oraclepdemos.com/hcmRestApi/resources/11.13.18.05/departments?limit=100&onlyData=true';
-       const response = await axios.get(url, {
-         httpsAgent: agent,
-         headers: { 'Authorization': 'Basic dXNlcl9yMTRfYTJmOnFvMkgqNlcj' }
-       });
-       const departments = (response.data.items || []).map(d => ({ DepartmentId: d.OrganizationId, DepartmentName: d.Name }));
-       return res.json({ departments });
-    }
+    // Use the stable departments resource
+    const baseUrl = 'https://fa-eubg-test-saasfademo1.ds-fa.oraclepdemos.com/hcmRestApi/resources/11.13.18.05';
+    let url = `${baseUrl}/departments?onlyData=true&limit=500&q=Status='A'`;
 
-    // Fetch from assignment child LOV for perfect filtering
-    const url = `https://fa-eubg-test-saasfademo1.ds-fa.oraclepdemos.com/hcmRestApi/resources/11.13.18.05/workers/${encodedPersonId}/child/workRelationships/${WorkRelationshipId}/child/assignments/${encodedAssignmentId}/lov/OrganizationId?onlyData=true&limit=100`;
-
-    console.log('Fetching assignment-filtered departments from:', url);
+    console.log('Fetching departments from stable resource:', url);
 
     const response = await axios.get(url, {
       httpsAgent: agent,
@@ -416,11 +407,25 @@ app.get('/api/oracle/departments', async (req, res) => {
       }
     });
 
-    const departments = (response.data.items || [])
+    let departments = (response.data.items || [])
       .map(d => ({
         DepartmentId: d.OrganizationId,
-        DepartmentName: d.OrganizationName
+        DepartmentName: d.Name
       }));
+
+    // Smart filter: if BU name is like "Valeo North America Inc - BU", 
+    // we look for departments with "US" or "North America" in the name.
+    if (BusinessUnitName && BusinessUnitName !== 'undefined') {
+        const buWords = BusinessUnitName.split(' ').map(w => w.toLowerCase()).filter(w => w.length > 2);
+        const keywords = buWords.filter(w => !['inc', 'bu', 'llc', 'valeo'].includes(w));
+        
+        console.log('Filtering by keywords:', keywords);
+        
+        departments = departments.filter(d => {
+            const name = d.DepartmentName.toLowerCase();
+            return keywords.some(k => name.includes(k)) || name.includes('us') || name.includes('uk');
+        });
+    }
 
     res.json({ departments });
 
