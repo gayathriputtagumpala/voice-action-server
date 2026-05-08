@@ -349,16 +349,10 @@ app.patch('/api/oracle/department', async (req, res) => {
 
     // IMPORTANT: Sending BOTH DepartmentId and DepartmentName causes PER-1530231 error.
     // We must send ONLY ONE.
-    const body = { "ActionCode": "ASG_CHANGE" };
-    if (DepartmentId) {
-      body.DepartmentId = Number(DepartmentId);
-    } else {
-      body.DepartmentName = DepartmentName;
-    }
-
-    if (BusinessUnitId) {
-      body.BusinessUnitId = Number(BusinessUnitId);
-    }
+    const body = {
+      "ActionCode": "ASG_CHANGE",
+      "DepartmentId": Number(DepartmentId)
+    };
 
     console.log('Request body:', JSON.stringify(body));
 
