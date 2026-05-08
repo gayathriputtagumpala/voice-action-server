@@ -329,6 +329,7 @@ app.patch('/api/oracle/department', async (req, res) => {
       encodedAssignmentId,
       DepartmentName,
       DepartmentId,
+      BusinessUnitId,
       EffectiveDate
     } = req.body;
 
@@ -353,6 +354,10 @@ app.patch('/api/oracle/department', async (req, res) => {
       body.DepartmentId = Number(DepartmentId);
     } else {
       body.DepartmentName = DepartmentName;
+    }
+
+    if (BusinessUnitId) {
+      body.BusinessUnitId = Number(BusinessUnitId);
     }
 
     console.log('Request body:', JSON.stringify(body));
