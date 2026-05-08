@@ -387,20 +387,26 @@ app.patch('/api/oracle/department', async (req, res) => {
 });
 
 app.get('/api/oracle/departments', async (req, res) => {
-  const { BusinessUnitId } = req.query;
+  const { encodedPersonId, WorkRelationshipId, encodedAssignmentId } = req.query;
   try {
     const https = require('https');
     const agent = new https.Agent({ rejectUnauthorized: false });
 
-    // Use hcmDepartmentsLOV which supports BU filtering
-    const baseUrl = 'https://fa-eubg-test-saasfademo1.ds-fa.oraclepdemos.com/hcmRestApi/resources/11.13.18.05';
-    let url = `${baseUrl}/hcmDepartmentsLOV?onlyData=true&limit=500`;
-    
-    if (BusinessUnitId && BusinessUnitId !== 'undefined') {
-      url += `&q=BusinessUnitId=${BusinessUnitId}`;
+    if (!encodedPersonId || !encodedAssignmentId) {
+       // Fallback to general list if no worker context
+       const url = 'https://fa-eubg-test-saasfademo1.ds-fa.oraclepdemos.com/hcmRestApi/resources/11.13.18.05/departments?limit=100&onlyData=true';
+       const response = await axios.get(url, {
+         httpsAgent: agent,
+         headers: { 'Authorization': 'Basic dXNlcl9yMTRfYTJmOnFvMkgqNlcj' }
+       });
+       const departments = (response.data.items || []).map(d => ({ DepartmentId: d.OrganizationId, DepartmentName: d.Name }));
+       return res.json({ departments });
     }
 
-    console.log('Fetching filtered departments from:', url);
+    // Fetch from assignment child LOV for perfect filtering
+    const url = `https://fa-eubg-test-saasfademo1.ds-fa.oraclepdemos.com/hcmRestApi/resources/11.13.18.05/workers/${encodedPersonId}/child/workRelationships/${WorkRelationshipId}/child/assignments/${encodedAssignmentId}/lov/OrganizationId?onlyData=true&limit=100`;
+
+    console.log('Fetching assignment-filtered departments from:', url);
 
     const response = await axios.get(url, {
       httpsAgent: agent,
