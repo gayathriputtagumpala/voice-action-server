@@ -332,6 +332,8 @@ app.patch('/api/oracle/department', async (req, res) => {
       EffectiveDate
     } = req.body;
 
+    console.log(`[${new Date().toISOString()}] PATCH Department Request Received`);
+    
     const effectiveDate = EffectiveDate || 
       new Date().toISOString().split('T')[0];
 
