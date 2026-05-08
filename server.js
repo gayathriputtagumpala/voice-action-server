@@ -327,45 +327,37 @@ app.patch('/api/oracle/department', async (req, res) => {
       encodedPersonId, 
       WorkRelationshipId, 
       encodedAssignmentId,
-      OrganizationId,
       DepartmentName,
+      DepartmentId,
       EffectiveDate
     } = req.body;
 
-    console.log('=== CHANGE DEPARTMENT REQUEST ===');
-    console.log('Department Name:', DepartmentName);
-    console.log('OrganizationId:', OrganizationId);
-    console.log('EffectiveDate:', EffectiveDate);
+    const effectiveDate = EffectiveDate || 
+      new Date().toISOString().split('T')[0];
 
-    const effectiveDate = EffectiveDate || new Date().toISOString().split('T')[0];
+    const url = `https://fa-eubg-test-saasfademo1.ds-fa.oraclepdemos.com/hcmRestApi/resources/11.13.18.05/workers/${encodedPersonId}/child/workRelationships/${WorkRelationshipId}/child/assignments/${encodedAssignmentId}`;
 
-    const baseUrl = process.env.ORACLE_BASE_URL || 'https://fa-eubg-test-saasfademo1.ds-fa.oraclepdemos.com';
-    const url = `${baseUrl.replace(/\/$/, '')}/hcmRestApi/resources/11.13.18.05/workers/${encodedPersonId}/child/workRelationships/${WorkRelationshipId}/child/assignments/${encodedAssignmentId}`;
-
-    console.log('PATCH URL:', url);
+    console.log('PATCH Department URL:', url);
+    console.log('DepartmentId:', DepartmentId);
+    console.log('DepartmentName:', DepartmentName);
 
     const https = require('https');
     const agent = new https.Agent({ rejectUnauthorized: false });
 
-    const headers = {
-      'Content-Type': 'application/json',
-      'Authorization': 'Basic dXNlcl9yMTRfYTJmOnFvMkgqNlcj',
-      'Effective-Of': `RangeMode=UPDATE;RangeStartDate=${effectiveDate}`
-    };
+    // Try with DepartmentId first, fallback to DepartmentName
+    const body = DepartmentId 
+      ? { "ActionCode": "ASG_CHANGE", "DepartmentId": Number(DepartmentId) }
+      : { "ActionCode": "ASG_CHANGE", "DepartmentName": DepartmentName };
 
-    const body = {
-      "ActionCode": "ASG_CHANGE",
-      "DepartmentId": OrganizationId ? Number(OrganizationId) : undefined,
-      "DepartmentName": DepartmentName
-    };
-
-    console.log('Sending PATCH to Oracle:', url);
-    console.log('Headers:', JSON.stringify(headers));
-    console.log('Body:', JSON.stringify(body));
+    console.log('Request body:', JSON.stringify(body));
 
     const response = await axios.patch(url, body, {
       httpsAgent: agent,
-      headers: headers
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Basic dXNlcl9yMTRfYTJmOnFvMkgqNlcj',
+        'Effective-Of': `RangeMode=UPDATE;RangeStartDate=${effectiveDate};RangeEndDate=4712-12-31`
+      }
     });
 
     console.log('Department change success:', response.status);
@@ -375,10 +367,13 @@ app.patch('/api/oracle/department', async (req, res) => {
     });
 
   } catch (err) {
-    console.error('Department change error:', err.response?.status);
-    console.error('Error data:', JSON.stringify(err.response?.data));
+    console.error('Department error:', err.response?.status);
+    console.error('Department error data:', JSON.stringify(err.response?.data));
     res.status(500).json({ 
-      error: err.response?.data || err.message 
+      error: err.response?.data?.detail || 
+             err.response?.data?.title ||
+             JSON.stringify(err.response?.data) || 
+             err.message 
     });
   }
 });
