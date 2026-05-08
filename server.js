@@ -355,7 +355,7 @@ app.patch('/api/oracle/department', async (req, res) => {
 
     const body = {
       "ActionCode": "ASG_CHANGE",
-      "OrganizationId": OrganizationId ? Number(OrganizationId) : undefined,
+      "DepartmentId": OrganizationId ? Number(OrganizationId) : undefined,
       "DepartmentName": DepartmentName
     };
 
