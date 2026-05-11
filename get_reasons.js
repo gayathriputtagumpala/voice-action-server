@@ -5,7 +5,7 @@ async function test() {
   const url = 'https://fa-eubg-test-saasfademo1.ds-fa.oraclepdemos.com/hcmRestApi/resources/11.13.18.05/actionReasonsLOV?q=ActionCode%3D%27ASG_CHANGE%27&onlyData=true';
   
   const agent = new https.Agent({ rejectUnauthorized: false });
-  const auth = 'Basic dXNlcl9yMTRfYTJmOnFvMkgqNlcj';
+  const auth = 'Basic dXNlcl9yMTRfYTJmOmhUOD8yc1U/';
   
   try {
     const res = await axios.get(url, {

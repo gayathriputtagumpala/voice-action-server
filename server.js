@@ -340,7 +340,8 @@ app.patch('/api/oracle/department', async (req, res) => {
     const effectiveDate = EffectiveDate || 
       new Date().toISOString().split('T')[0];
 
-    const url = `https://fa-eubg-test-saasfademo1.ds-fa.oraclepdemos.com/hcmRestApi/resources/11.13.18.05/workers/${encodedPersonId}/child/workRelationships/${WorkRelationshipId}/child/assignments/${encodedAssignmentId}`;
+    const baseUrl = process.env.ORACLE_BASE_URL || 'https://fa-eubg-test-saasfademo1.ds-fa.oraclepdemos.com';
+    const url = `${baseUrl.replace(/\/$/, '')}/hcmRestApi/resources/11.13.18.05/workers/${encodedPersonId}/child/workRelationships/${WorkRelationshipId}/child/assignments/${encodedAssignmentId}`;
 
     console.log('PATCH Department URL:', url);
     console.log('DepartmentId:', DepartmentId);
@@ -362,7 +363,7 @@ app.patch('/api/oracle/department', async (req, res) => {
       httpsAgent: agent,
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Basic dXNlcl9yMTRfYTJmOnFvMkgqNlcj',
+        'Authorization': process.env.ORACLE_AUTH,
         'Effective-Of': 'RangeMode=UPDATE;RangeStartDate=2025-05-01;RangeEndDate=4712-12-31'
       }
     });
@@ -394,7 +395,7 @@ app.get('/api/oracle/departments', async (req, res) => {
     const agent = new https.Agent({ rejectUnauthorized: false });
 
     // Use the stable departments resource
-    const baseUrl = 'https://fa-eubg-test-saasfademo1.ds-fa.oraclepdemos.com/hcmRestApi/resources/11.13.18.05';
+    const baseUrl = (process.env.ORACLE_BASE_URL || 'https://fa-eubg-test-saasfademo1.ds-fa.oraclepdemos.com').replace(/\/$/, '') + '/hcmRestApi/resources/11.13.18.05';
     let url = `${baseUrl}/departments?onlyData=true&limit=500`;
 
     console.log('Fetching departments from stable resource:', url);
@@ -402,7 +403,7 @@ app.get('/api/oracle/departments', async (req, res) => {
     const response = await axios.get(url, {
       httpsAgent: agent,
       headers: {
-        'Authorization': 'Basic dXNlcl9yMTRfYTJmOnFvMkgqNlcj',
+        'Authorization': process.env.ORACLE_AUTH,
         'Content-Type': 'application/json'
       }
     });

@@ -8,7 +8,7 @@ async function test() {
     const response = await axios.get(url, {
       httpsAgent: agent,
       headers: {
-        'Authorization': 'Basic dXNlcl9yMTRfYTJmOnFvMkgqNlcj',
+        'Authorization': 'Basic dXNlcl9yMTRfYTJmOmhUOD8yc1U/',
         'Content-Type': 'application/json'
       }
     });
