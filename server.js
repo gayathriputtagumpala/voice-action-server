@@ -356,8 +356,6 @@ app.patch('/api/oracle/department', async (req, res) => {
       "DepartmentId": Number(DepartmentId)
     };
 
-    console.log('FINAL PAYLOAD TO ORACLE:', JSON.stringify(body));
-
     console.log('Attempting UPDATE mode...');
     try {
       const response = await axios.patch(url, body, {
