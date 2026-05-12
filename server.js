@@ -337,7 +337,7 @@ app.patch('/api/oracle/department', async (req, res) => {
 
     console.log(`[${new Date().toISOString()}] PATCH Department Request Received`);
     
-    const effectiveDate = EffectiveDate || new Date().toISOString().split('T')[0];
+    const effectiveDate = EffectiveDate || '2025-05-01';
 
     // Use provided assignmentSelfLink or construct fallback
     let url = assignmentSelfLink;
