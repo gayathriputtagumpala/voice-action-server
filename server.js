@@ -203,6 +203,7 @@ app.get('/api/oracle/worker', async (req, res) => {
       encodedAssignmentId: encodedAssignmentId,
       AssignmentId: assignment?.AssignmentId,
       AssignmentNumber: assignment?.AssignmentNumber,
+      assignmentSelfLink: assignmentSelfLink,
       currentManagerAssignmentId: currentManager?.ManagerAssignmentId,
       currentManagerNumber: currentManagerNumber || currentManager?.ManagerAssignmentNumber,
       currentManagerName: currentManagerName,
@@ -326,55 +327,67 @@ app.post('/api/oracle/assign', async (req, res) => {
 app.patch('/api/oracle/department', async (req, res) => {
   try {
     const { 
+      assignmentSelfLink,
       encodedPersonId, 
       WorkRelationshipId, 
       encodedAssignmentId,
-      DepartmentName,
       DepartmentId,
-      BusinessUnitId,
       EffectiveDate
     } = req.body;
 
     console.log(`[${new Date().toISOString()}] PATCH Department Request Received`);
     
-    const effectiveDate = EffectiveDate || 
-      new Date().toISOString().split('T')[0];
+    const effectiveDate = EffectiveDate || new Date().toISOString().split('T')[0];
 
-    const baseUrl = process.env.ORACLE_BASE_URL || 'https://fa-eubg-test-saasfademo1.ds-fa.oraclepdemos.com';
-    const url = `${baseUrl.replace(/\/$/, '')}/hcmRestApi/resources/11.13.18.05/workers/${encodedPersonId}/child/workRelationships/${WorkRelationshipId}/child/assignments/${encodedAssignmentId}`;
+    // Use provided assignmentSelfLink or construct fallback
+    let url = assignmentSelfLink;
+    if (!url) {
+      const baseUrl = process.env.ORACLE_BASE_URL || 'https://fa-eubg-test-saasfademo1.ds-fa.oraclepdemos.com';
+      url = `${baseUrl.replace(/\/$/, '')}/hcmRestApi/resources/11.13.18.05/workers/${encodedPersonId}/child/workRelationships/${WorkRelationshipId}/child/assignments/${encodedAssignmentId}`;
+    }
 
-    console.log('PATCH Department URL:', url);
-    console.log('DepartmentId:', DepartmentId);
-    console.log('DepartmentName:', DepartmentName);
+    console.log('Target URL:', url);
 
     const https = require('https');
     const agent = new https.Agent({ rejectUnauthorized: false });
 
-    // IMPORTANT: Sending BOTH DepartmentId and DepartmentName causes PER-1530231 error.
-    // We must send ONLY ONE.
     const body = {
       "ActionCode": "ASG_CHANGE",
       "DepartmentId": Number(DepartmentId),
       "OrganizationId": Number(DepartmentId)
     };
 
-    console.log('Request body:', JSON.stringify(body));
+    console.log('Attempting UPDATE mode...');
+    try {
+      const response = await axios.patch(url, body, {
+        httpsAgent: agent,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': process.env.ORACLE_AUTH,
+          'Effective-Of': `RangeMode=UPDATE;RangeStartDate=${effectiveDate}`
+        }
+      });
 
-    const response = await axios.patch(url, body, {
-      httpsAgent: agent,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': process.env.ORACLE_AUTH,
-        'Effective-Of': `RangeMode=UPDATE;RangeStartDate=${effectiveDate};RangeEndDate=4712-12-31`
-      }
-    });
+      console.log('UPDATE success:', response.status);
+      return res.json({ success: true, message: 'Department updated successfully (UPDATE mode)' });
 
-    console.log('Department change success:', response.status);
-    res.json({ 
-      success: true, 
-      version: "1.1.0-FIX",
-      message: `Department changed to ${DepartmentName} successfully` 
-    });
+    } catch (updateErr) {
+      console.log('UPDATE mode failed, attempting CORRECTION mode...');
+      console.log('Update Error Details:', JSON.stringify(updateErr.response?.data || updateErr.message));
+
+      // Attempt CORRECTION mode as fallback
+      const corrResponse = await axios.patch(url, body, {
+        httpsAgent: agent,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': process.env.ORACLE_AUTH,
+          'Effective-Of': 'RangeMode=CORRECTION'
+        }
+      });
+
+      console.log('CORRECTION success:', corrResponse.status);
+      return res.json({ success: true, message: 'Department updated successfully (CORRECTION mode)' });
+    }
 
   } catch (err) {
     const status = err.response?.status || 500;
@@ -382,7 +395,6 @@ app.patch('/api/oracle/department', async (req, res) => {
     console.error(`Department Error [${status}]:`, JSON.stringify(errorData || err.message));
     
     res.status(status).json({ 
-      version: "1.1.0-VERBOSE",
       error: errorData || err.message,
       detail: err.message
     });
