@@ -210,7 +210,9 @@ app.get('/api/oracle/worker', async (req, res) => {
       managerSelfLink: managerSelfLink,
       DepartmentName: assignment?.DepartmentName || 'Not Assigned',
       BusinessUnitId: assignment?.BusinessUnitId,
-      BusinessUnitName: workRel?.BusinessUnitName || assignment?.BusinessUnitName
+      BusinessUnitName: workRel?.BusinessUnitName || assignment?.BusinessUnitName,
+      LocationId: assignment?.LocationId || null,
+      LocationName: assignment?.LocationCode || 'Not Assigned'
     });
   } catch (error) {
     console.error('Oracle Worker Error:', error.response?.data || error.message);
@@ -396,6 +398,102 @@ app.patch('/api/oracle/department', async (req, res) => {
     res.status(status).json({ 
       error: errorData || err.message,
       detail: err.message
+    });
+  }
+});
+
+app.get('/api/oracle/locations', async (req, res) => {
+  try {
+    const https = require('https');
+    const agent = new https.Agent({ rejectUnauthorized: false });
+
+    const url = 'https://fa-eubg-test-saasfademo1.ds-fa.oraclepdemos.com/hcmRestApi/resources/11.13.18.05/locations?limit=100&fields=LocationId,LocationName,AddressLine1,TownOrCity,Country&onlyData=true';
+
+    console.log('Fetching locations from Oracle...');
+
+    const response = await axios.get(url, {
+      httpsAgent: agent,
+      headers: {
+        'Authorization': process.env.ORACLE_AUTH,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    console.log('Locations count:', response.data.count);
+
+    const locations = response.data.items
+      .filter(l => l.LocationName)
+      .map(l => ({
+        LocationId: l.LocationId,
+        LocationName: l.LocationName,
+        City: l.TownOrCity || '',
+        Country: l.Country || ''
+      }));
+
+    res.json({ locations });
+
+  } catch (err) {
+    console.error('Locations error:', err.response?.status);
+    console.error('Locations error data:', JSON.stringify(err.response?.data || err.message));
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.patch('/api/oracle/location', async (req, res) => {
+  try {
+    const {
+      encodedPersonId,
+      WorkRelationshipId,
+      encodedAssignmentId,
+      LocationId,
+      LocationName,
+      EffectiveDate
+    } = req.body;
+
+    const effectiveDate = EffectiveDate || '2025-05-01';
+
+    console.log('=== CHANGE LOCATION REQUEST ===');
+    console.log('LocationId:', LocationId);
+    console.log('LocationName:', LocationName);
+    console.log('EffectiveDate:', effectiveDate);
+
+    const url = `https://fa-eubg-test-saasfademo1.ds-fa.oraclepdemos.com/hcmRestApi/resources/11.13.18.05/workers/${encodedPersonId}/child/workRelationships/${WorkRelationshipId}/child/assignments/${encodedAssignmentId}`;
+
+    console.log('PATCH URL:', url);
+
+    const https = require('https');
+    const agent = new https.Agent({ rejectUnauthorized: false });
+
+    const body = {
+      "ActionCode": "ASG_CHANGE",
+      "LocationId": Number(LocationId)
+    };
+
+    console.log('Request body:', JSON.stringify(body));
+
+    const response = await axios.patch(url, body, {
+      httpsAgent: agent,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': process.env.ORACLE_AUTH,
+        'Effective-Of': `RangeMode=UPDATE;RangeStartDate=${effectiveDate};RangeEndDate=4712-12-31`
+      }
+    });
+
+    console.log('Location change success:', response.status);
+    res.json({
+      success: true,
+      message: `Location changed to ${LocationName} successfully`
+    });
+
+  } catch (err) {
+    console.error('Location change error:', err.response?.status);
+    console.error('Location error data:', JSON.stringify(err.response?.data));
+    res.status(500).json({
+      error: err.response?.data?.detail ||
+             err.response?.data?.title ||
+             JSON.stringify(err.response?.data) ||
+             err.message
     });
   }
 });
