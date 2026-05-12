@@ -353,8 +353,7 @@ app.patch('/api/oracle/department', async (req, res) => {
 
     const body = {
       "ActionCode": "ASG_CHANGE",
-      "DepartmentId": Number(DepartmentId),
-      "OrganizationId": Number(DepartmentId)
+      "DepartmentId": Number(DepartmentId)
     };
 
     console.log('Attempting UPDATE mode...');
