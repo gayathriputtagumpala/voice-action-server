@@ -354,7 +354,8 @@ app.patch('/api/oracle/department', async (req, res) => {
     // We must send ONLY ONE.
     const body = {
       "ActionCode": "ASG_CHANGE",
-      "DepartmentId": Number(DepartmentId)
+      "DepartmentId": Number(DepartmentId),
+      "OrganizationId": Number(DepartmentId)
     };
 
     console.log('Request body:', JSON.stringify(body));
@@ -364,7 +365,7 @@ app.patch('/api/oracle/department', async (req, res) => {
       headers: {
         'Content-Type': 'application/json',
         'Authorization': process.env.ORACLE_AUTH,
-        'Effective-Of': 'RangeMode=UPDATE;RangeStartDate=2025-05-01;RangeEndDate=4712-12-31'
+        'Effective-Of': `RangeMode=UPDATE;RangeStartDate=${effectiveDate};RangeEndDate=4712-12-31`
       }
     });
 
