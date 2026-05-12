@@ -363,7 +363,7 @@ app.patch('/api/oracle/department', async (req, res) => {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': process.env.ORACLE_AUTH,
-          'Effective-Of': `RangeMode=UPDATE;RangeStartDate=${effectiveDate}`
+          'Effective-Of': `RangeMode=UPDATE;RangeStartDate=${effectiveDate};RangeEndDate=4712-12-31`
         }
       });
 
