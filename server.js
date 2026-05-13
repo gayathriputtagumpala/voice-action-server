@@ -526,19 +526,12 @@ app.get('/api/oracle/departments', async (req, res) => {
         DepartmentName: d.Name
       }));
 
-    // Smart filter: if BU name is like "Valeo North America Inc - BU", 
-    // we look for departments with "US" or "North America" in the name.
+    // Smart filter disabled to ensure all departments (like "China") are available
+    /*
     if (BusinessUnitName && BusinessUnitName !== 'undefined') {
-        const buWords = BusinessUnitName.split(' ').map(w => w.toLowerCase()).filter(w => w.length > 2);
-        const keywords = buWords.filter(w => !['inc', 'bu', 'llc', 'valeo'].includes(w));
-        
-        console.log('Filtering by keywords:', keywords);
-        
-        departments = departments.filter(d => {
-            const name = d.DepartmentName.toLowerCase();
-            return keywords.some(k => name.includes(k)) || name.includes('us') || name.includes('uk');
-        });
+        ...
     }
+    */
 
     res.json({ departments });
 
