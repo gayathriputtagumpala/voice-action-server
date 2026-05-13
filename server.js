@@ -111,8 +111,8 @@ app.post('/api/extract', async (req, res) => {
 app.get('/api/oracle/worker', async (req, res) => {
   const personNumber = req.query.person_number?.toString().trim();
   try {
-    const baseUrl = (process.env.ORACLE_BASE_URL || 'https://dabiqy.ds-fa.oraclepdemos.com').replace(/\/$/, '') + '/hcmRestApi/resources/11.13.18.05';
-    const url = `${baseUrl.replace(/\/$/, '')}/hcmRestApi/resources/11.13.18.05/workers?q=PersonNumber%3D${personNumber}&expand=workRelationships.assignments.managers`;
+    const baseUrl = (process.env.ORACLE_BASE_URL || 'https://dabiqy.ds-fa.oraclepdemos.com').replace(/\/$/, '');
+    const url = `${baseUrl}/hcmRestApi/resources/11.13.18.05/workers?q=PersonNumber%3D${personNumber}&expand=workRelationships.assignments.managers`;
     
     console.log('1. Person number received:', personNumber);
     console.log('3. Full URL being called:', url);
@@ -168,8 +168,8 @@ app.get('/api/oracle/worker', async (req, res) => {
       const managerPersonNum = managerAssignmentNum.replace(/e/i, '');
       
       try {
-        const baseUrl = (process.env.ORACLE_BASE_URL || 'https://dabiqy.ds-fa.oraclepdemos.com').replace(/\/$/, '') + '/hcmRestApi/resources/11.13.18.05';
-        const mgrUrl = `${baseUrl.replace(/\/$/, '')}/hcmRestApi/resources/11.13.18.05/workers?q=PersonNumber%3D${managerPersonNum}&fields=PersonId,PersonNumber,DisplayName&onlyData=true`;
+        const baseUrl = (process.env.ORACLE_BASE_URL || 'https://dabiqy.ds-fa.oraclepdemos.com').replace(/\/$/, '');
+        const mgrUrl = `${baseUrl}/hcmRestApi/resources/11.13.18.05/workers?q=PersonNumber%3D${managerPersonNum}&fields=PersonId,PersonNumber,DisplayName&onlyData=true`;
         
         const mgrResponse = await axios.get(mgrUrl, {
           httpsAgent: agent,
@@ -293,8 +293,8 @@ app.post('/api/oracle/assign', async (req, res) => {
       );
     } else {
       // If no manager exists, POST a new one
-      const baseUrl = (process.env.ORACLE_BASE_URL || 'https://dabiqy.ds-fa.oraclepdemos.com').replace(/\/$/, '') + '/hcmRestApi/resources/11.13.18.05';
-      const url = `${baseUrl.replace(/\/$/, '')}/hcmRestApi/resources/11.13.18.05/workers/${encodedPersonId}/child/workRelationships/${WorkRelationshipId}/child/assignments/${encodedAssignmentId}/child/managers`;
+      const baseUrl = (process.env.ORACLE_BASE_URL || 'https://dabiqy.ds-fa.oraclepdemos.com').replace(/\/$/, '');
+      const url = `${baseUrl}/hcmRestApi/resources/11.13.18.05/workers/${encodedPersonId}/child/workRelationships/${WorkRelationshipId}/child/assignments/${encodedAssignmentId}/child/managers`;
 
       console.log('Final URL (POST):', url);
 
@@ -344,8 +344,8 @@ app.patch('/api/oracle/department', async (req, res) => {
     // Use provided assignmentSelfLink or construct fallback
     let url = assignmentSelfLink;
     if (!url) {
-      const baseUrl = (process.env.ORACLE_BASE_URL || 'https://dabiqy.ds-fa.oraclepdemos.com').replace(/\/$/, '') + '/hcmRestApi/resources/11.13.18.05';
-      url = `${baseUrl.replace(/\/$/, '')}/hcmRestApi/resources/11.13.18.05/workers/${encodedPersonId}/child/workRelationships/${WorkRelationshipId}/child/assignments/${encodedAssignmentId}`;
+      const baseUrl = (process.env.ORACLE_BASE_URL || 'https://dabiqy.ds-fa.oraclepdemos.com').replace(/\/$/, '');
+      url = `${baseUrl}/hcmRestApi/resources/11.13.18.05/workers/${encodedPersonId}/child/workRelationships/${WorkRelationshipId}/child/assignments/${encodedAssignmentId}`;
     }
 
     console.log('Target URL:', url);
