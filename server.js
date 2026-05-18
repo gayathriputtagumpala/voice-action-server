@@ -224,7 +224,7 @@ app.get('/api/oracle/worker', async (req, res) => {
 app.get('/api/oracle/manager', async (req, res) => {
   const manager_person_number = req.query.manager_person_number?.toString().trim();
   try {
-    const url = `${process.env.ORACLE_BASE_URL || 'https://fa-eubg-test-saasfademo1.ds-fa.oraclepdemos.com'}/hcmRestApi/resources/11.13.18.05/workers?q=PersonNumber%3D${manager_person_number}&expand=workRelationships.assignments`;
+    const url = `${process.env.ORACLE_BASE_URL || 'https://dabiqy.ds-fa.oraclepdemos.com'}/hcmRestApi/resources/11.13.18.05/workers?q=PersonNumber%3D${manager_person_number}&expand=workRelationships.assignments`;
     
     const https = require('https');
     const agent = new https.Agent({ rejectUnauthorized: false });
@@ -507,7 +507,7 @@ app.get('/api/oracle/departments', async (req, res) => {
     const agent = new https.Agent({ rejectUnauthorized: false });
 
     // Use the stable departments resource
-    const baseUrl = (process.env.ORACLE_BASE_URL || 'https://fa-eubg-test-saasfademo1.ds-fa.oraclepdemos.com').replace(/\/$/, '') + '/hcmRestApi/resources/11.13.18.05';
+    const baseUrl = (process.env.ORACLE_BASE_URL || 'https://dabiqy.ds-fa.oraclepdemos.com').replace(/\/$/, '') + '/hcmRestApi/resources/11.13.18.05';
     let url = `${baseUrl}/departments?onlyData=true&limit=500`;
 
     console.log('Fetching departments from stable resource:', url);
@@ -775,8 +775,8 @@ async function processAssignManager(from, employeeNum, managerNum) {
   try {
     const https = require('https');
     const agent = new https.Agent({ rejectUnauthorized: false });
-    const baseUrl = 'https://fa-eubg-test-saasfademo1.ds-fa.oraclepdemos.com';
-    const auth = 'Basic dXNlcl9yMTRfYTJmOmhUOD8yc1U/';
+    const baseUrl = (process.env.ORACLE_BASE_URL || 'https://dabiqy.ds-fa.oraclepdemos.com').replace(/\/$/, '');
+    const auth = process.env.ORACLE_AUTH || 'Basic dXNlcl9yMTNfYTJmOkQ/Nj82dXVD';
 
     // Step 1: Get worker details
     const workerRes = await axios.get(
@@ -855,8 +855,8 @@ async function processChangeDepartment(from, employeeNum, deptName) {
   try {
     const https = require('https');
     const agent = new https.Agent({ rejectUnauthorized: false });
-    const baseUrl = 'https://fa-eubg-test-saasfademo1.ds-fa.oraclepdemos.com';
-    const auth = 'Basic dXNlcl9yMTRfYTJmOmhUOD8yc1U/';
+    const baseUrl = (process.env.ORACLE_BASE_URL || 'https://dabiqy.ds-fa.oraclepdemos.com').replace(/\/$/, '');
+    const auth = process.env.ORACLE_AUTH || 'Basic dXNlcl9yMTNfYTJmOkQ/Nj82dXVD';
 
     // Get worker details
     const workerRes = await axios.get(
