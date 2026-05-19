@@ -189,13 +189,11 @@ app.post('/api/extract', async (req, res) => {
 
 // 3. Oracle Proxy - Get Worker
 app.get('/api/oracle/worker', async (req, res) => {
-  const oracleAuth = req.headers['x-oracle-auth'] || 
-    'Basic dXNlcl9yMTRfYTJmOmhUOD8yc1U/';
-  const oracleBaseUrl = req.headers['x-oracle-url'] || 
-    'https://fa-euth-dev58-saasfademo1.ds-fa.oraclepdemos.com';
+  const oracleAuth = req.headers['x-oracle-auth'] || process.env.ORACLE_AUTH;
+  const oracleBaseUrl = req.headers['x-oracle-url'] || process.env.ORACLE_BASE_URL;
   const personNumber = req.query.person_number?.toString().trim();
   try {
-    const baseUrl = (oracleBaseUrl || 'https://dabiqy.ds-fa.oraclepdemos.com').replace(/\/$/, '');
+    const baseUrl = (oracleBaseUrl || process.env.ORACLE_BASE_URL).replace(/\/$/, '');
     const url = `${baseUrl}/hcmRestApi/resources/11.13.18.05/workers?q=PersonNumber%3D${personNumber}&expand=workRelationships.assignments`;
     
     console.log('1. Person number received:', personNumber);
@@ -252,7 +250,7 @@ app.get('/api/oracle/worker', async (req, res) => {
       const managerPersonNum = managerAssignmentNum.replace(/e/i, '');
       
       try {
-        const baseUrl = (oracleBaseUrl || 'https://dabiqy.ds-fa.oraclepdemos.com').replace(/\/$/, '');
+        const baseUrl = (oracleBaseUrl || process.env.ORACLE_BASE_URL).replace(/\/$/, '');
         const mgrUrl = `${baseUrl}/hcmRestApi/resources/11.13.18.05/workers?q=PersonNumber%3D${managerPersonNum}&fields=PersonId,PersonNumber,DisplayName&onlyData=true`;
         
         const mgrResponse = await axios.get(mgrUrl, {
@@ -306,10 +304,8 @@ app.get('/api/oracle/worker', async (req, res) => {
 
 // 4. Oracle Proxy - Get Manager
 app.get('/api/oracle/manager', async (req, res) => {
-  const oracleAuth = req.headers['x-oracle-auth'] || 
-    'Basic dXNlcl9yMTRfYTJmOmhUOD8yc1U/';
-  const oracleBaseUrl = req.headers['x-oracle-url'] || 
-    'https://fa-euth-dev58-saasfademo1.ds-fa.oraclepdemos.com';
+  const oracleAuth = req.headers['x-oracle-auth'] || process.env.ORACLE_AUTH;
+  const oracleBaseUrl = req.headers['x-oracle-url'] || process.env.ORACLE_BASE_URL;
   const manager_person_number = req.query.manager_person_number?.toString().trim();
   try {
     const url = `${oracleBaseUrl || 'https://dabiqy.ds-fa.oraclepdemos.com'}/hcmRestApi/resources/11.13.18.05/workers?q=PersonNumber%3D${manager_person_number}&expand=workRelationships.assignments`;
@@ -333,10 +329,8 @@ app.get('/api/oracle/manager', async (req, res) => {
 
 // 5. Oracle Proxy - Assign Manager
 app.post('/api/oracle/assign', async (req, res) => {
-  const oracleAuth = req.headers['x-oracle-auth'] || 
-    'Basic dXNlcl9yMTRfYTJmOmhUOD8yc1U/';
-  const oracleBaseUrl = req.headers['x-oracle-url'] || 
-    'https://fa-euth-dev58-saasfademo1.ds-fa.oraclepdemos.com';
+  const oracleAuth = req.headers['x-oracle-auth'] || process.env.ORACLE_AUTH;
+  const oracleBaseUrl = req.headers['x-oracle-url'] || process.env.ORACLE_BASE_URL;
   try {
     const { 
       encodedPersonId,
@@ -385,7 +379,7 @@ app.post('/api/oracle/assign', async (req, res) => {
       );
     } else {
       // If no manager exists, POST a new one
-      const baseUrl = (oracleBaseUrl || 'https://dabiqy.ds-fa.oraclepdemos.com').replace(/\/$/, '');
+      const baseUrl = (oracleBaseUrl || process.env.ORACLE_BASE_URL).replace(/\/$/, '');
       const url = `${baseUrl}/hcmRestApi/resources/11.13.18.05/workers/${encodedPersonId}/child/workRelationships/${WorkRelationshipId}/child/assignments/${encodedAssignmentId}/child/managers`;
 
       console.log('Final URL (POST):', url);
@@ -419,10 +413,8 @@ app.post('/api/oracle/assign', async (req, res) => {
 
 // 6. Oracle Proxy - Change Department
 app.patch('/api/oracle/department', async (req, res) => {
-  const oracleAuth = req.headers['x-oracle-auth'] || 
-    'Basic dXNlcl9yMTRfYTJmOmhUOD8yc1U/';
-  const oracleBaseUrl = req.headers['x-oracle-url'] || 
-    'https://fa-euth-dev58-saasfademo1.ds-fa.oraclepdemos.com';
+  const oracleAuth = req.headers['x-oracle-auth'] || process.env.ORACLE_AUTH;
+  const oracleBaseUrl = req.headers['x-oracle-url'] || process.env.ORACLE_BASE_URL;
   try {
     const { 
       assignmentSelfLink,
@@ -440,7 +432,7 @@ app.patch('/api/oracle/department', async (req, res) => {
     // Use provided assignmentSelfLink or construct fallback
     let url = assignmentSelfLink;
     if (!url) {
-      const baseUrl = (oracleBaseUrl || 'https://dabiqy.ds-fa.oraclepdemos.com').replace(/\/$/, '');
+      const baseUrl = (oracleBaseUrl || process.env.ORACLE_BASE_URL).replace(/\/$/, '');
       url = `${baseUrl}/hcmRestApi/resources/11.13.18.05/workers/${encodedPersonId}/child/workRelationships/${WorkRelationshipId}/child/assignments/${encodedAssignmentId}`;
     }
 
@@ -499,15 +491,13 @@ app.patch('/api/oracle/department', async (req, res) => {
 });
 
 app.get('/api/oracle/locations', async (req, res) => {
-  const oracleAuth = req.headers['x-oracle-auth'] || 
-    'Basic dXNlcl9yMTRfYTJmOmhUOD8yc1U/';
-  const oracleBaseUrl = req.headers['x-oracle-url'] || 
-    'https://fa-euth-dev58-saasfademo1.ds-fa.oraclepdemos.com';
+  const oracleAuth = req.headers['x-oracle-auth'] || process.env.ORACLE_AUTH;
+  const oracleBaseUrl = req.headers['x-oracle-url'] || process.env.ORACLE_BASE_URL;
   try {
     const https = require('https');
     const agent = new https.Agent({ rejectUnauthorized: false });
 
-    const baseUrl = (oracleBaseUrl || 'https://dabiqy.ds-fa.oraclepdemos.com').replace(/\/$/, '');
+    const baseUrl = (oracleBaseUrl || process.env.ORACLE_BASE_URL).replace(/\/$/, '');
     const url = `${baseUrl}/hcmRestApi/resources/11.13.18.05/locations?limit=100&fields=LocationId,LocationName,AddressLine1,TownOrCity,Country&onlyData=true`;
 
     console.log('Fetching locations from Oracle...');
@@ -541,10 +531,8 @@ app.get('/api/oracle/locations', async (req, res) => {
 });
 
 app.patch('/api/oracle/location', async (req, res) => {
-  const oracleAuth = req.headers['x-oracle-auth'] || 
-    'Basic dXNlcl9yMTRfYTJmOmhUOD8yc1U/';
-  const oracleBaseUrl = req.headers['x-oracle-url'] || 
-    'https://fa-euth-dev58-saasfademo1.ds-fa.oraclepdemos.com';
+  const oracleAuth = req.headers['x-oracle-auth'] || process.env.ORACLE_AUTH;
+  const oracleBaseUrl = req.headers['x-oracle-url'] || process.env.ORACLE_BASE_URL;
   try {
     const {
       encodedPersonId,
@@ -562,7 +550,7 @@ app.patch('/api/oracle/location', async (req, res) => {
     console.log('LocationName:', LocationName);
     console.log('EffectiveDate:', effectiveDate);
 
-    const baseUrl = (oracleBaseUrl || 'https://dabiqy.ds-fa.oraclepdemos.com').replace(/\/$/, '');
+    const baseUrl = (oracleBaseUrl || process.env.ORACLE_BASE_URL).replace(/\/$/, '');
     const url = `${baseUrl}/hcmRestApi/resources/11.13.18.05/workers/${encodedPersonId}/child/workRelationships/${WorkRelationshipId}/child/assignments/${encodedAssignmentId}`;
 
     console.log('PATCH URL:', url);
@@ -605,17 +593,15 @@ app.patch('/api/oracle/location', async (req, res) => {
 });
 
 app.get('/api/oracle/departments', async (req, res) => {
-  const oracleAuth = req.headers['x-oracle-auth'] || 
-    'Basic dXNlcl9yMTRfYTJmOmhUOD8yc1U/';
-  const oracleBaseUrl = req.headers['x-oracle-url'] || 
-    'https://fa-euth-dev58-saasfademo1.ds-fa.oraclepdemos.com';
+  const oracleAuth = req.headers['x-oracle-auth'] || process.env.ORACLE_AUTH;
+  const oracleBaseUrl = req.headers['x-oracle-url'] || process.env.ORACLE_BASE_URL;
   const { BusinessUnitName } = req.query;
   try {
     const https = require('https');
     const agent = new https.Agent({ rejectUnauthorized: false });
 
     // Use the stable departments resource
-    const baseUrl = (oracleBaseUrl || 'https://dabiqy.ds-fa.oraclepdemos.com').replace(/\/$/, '') + '/hcmRestApi/resources/11.13.18.05';
+    const baseUrl = (oracleBaseUrl || process.env.ORACLE_BASE_URL).replace(/\/$/, '') + '/hcmRestApi/resources/11.13.18.05';
     let url = `${baseUrl}/departments?onlyData=true&limit=500`;
 
     console.log('Fetching departments from stable resource:', url);
