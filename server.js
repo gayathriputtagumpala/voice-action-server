@@ -72,6 +72,10 @@ app.post('/api/auth/verify', async (req, res) => {
       res.status(401).json({ 
         error: 'Invalid Oracle username or password' 
       });
+    } else if (err.response?.status === 503) {
+      res.status(503).json({ 
+        error: 'Oracle Environment is currently down for scheduled maintenance. Please try again later.' 
+      });
     } else if (err.code === 'ENOTFOUND' || 
                err.code === 'ECONNREFUSED') {
       res.status(400).json({ 
