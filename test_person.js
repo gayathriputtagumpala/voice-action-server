@@ -12,18 +12,13 @@ async function test() {
   const agent = new https.Agent({ rejectUnauthorized: false });
   
   try {
-    const url = `${cleanUrl}/hcmRestApi/resources/11.13.18.05/workers?q=PersonNumber=10&expand=workRelationships.assignments.managers`;
+    const url = `${cleanUrl}/hcmRestApi/resources/11.13.18.05/workers?q=PersonNumber=13`;
     const res = await axios.get(url, { httpsAgent: agent, headers: { Authorization: authHeader }});
-    const worker = res.data.items?.[0];
-    console.log('Worker found:', !!worker);
-    const workRel = worker?.workRelationships?.[0];
-    console.log('WorkRel found:', !!workRel);
-    const assignment = workRel?.assignments?.[0];
-    console.log('Assignment found:', !!assignment);
-    const links = assignment?.links;
-    console.log('Links found:', !!links);
-    if (links) {
-        console.log('Self link:', links.find(l => l.rel === 'self')?.href);
+    console.log('Result 1 items count:', res.data.items?.length);
+    if (res.data.items?.length > 0) {
+      console.log('Worker found:', res.data.items[0].DisplayName);
+    } else {
+      console.log('Worker NOT found in items!');
     }
   } catch(err) {
     console.log('Error status:', err.response?.status);
