@@ -192,7 +192,7 @@ app.get('/api/oracle/worker', async (req, res) => {
   const oracleAuth = req.headers['x-oracle-auth'] || 
     'Basic dXNlcl9yMTRfYTJmOmhUOD8yc1U/';
   const oracleBaseUrl = req.headers['x-oracle-url'] || 
-    'https://fa-eubg-test-saasfademo1.ds-fa.oraclepdemos.com';
+    'https://fa-euth-dev58-saasfademo1.ds-fa.oraclepdemos.com';
   const personNumber = req.query.person_number?.toString().trim();
   try {
     const baseUrl = (oracleBaseUrl || 'https://dabiqy.ds-fa.oraclepdemos.com').replace(/\/$/, '');
@@ -309,7 +309,7 @@ app.get('/api/oracle/manager', async (req, res) => {
   const oracleAuth = req.headers['x-oracle-auth'] || 
     'Basic dXNlcl9yMTRfYTJmOmhUOD8yc1U/';
   const oracleBaseUrl = req.headers['x-oracle-url'] || 
-    'https://fa-eubg-test-saasfademo1.ds-fa.oraclepdemos.com';
+    'https://fa-euth-dev58-saasfademo1.ds-fa.oraclepdemos.com';
   const manager_person_number = req.query.manager_person_number?.toString().trim();
   try {
     const url = `${oracleBaseUrl || 'https://dabiqy.ds-fa.oraclepdemos.com'}/hcmRestApi/resources/11.13.18.05/workers?q=PersonNumber%3D${manager_person_number}&expand=workRelationships.assignments`;
@@ -336,7 +336,7 @@ app.post('/api/oracle/assign', async (req, res) => {
   const oracleAuth = req.headers['x-oracle-auth'] || 
     'Basic dXNlcl9yMTRfYTJmOmhUOD8yc1U/';
   const oracleBaseUrl = req.headers['x-oracle-url'] || 
-    'https://fa-eubg-test-saasfademo1.ds-fa.oraclepdemos.com';
+    'https://fa-euth-dev58-saasfademo1.ds-fa.oraclepdemos.com';
   try {
     const { 
       encodedPersonId,
@@ -422,7 +422,7 @@ app.patch('/api/oracle/department', async (req, res) => {
   const oracleAuth = req.headers['x-oracle-auth'] || 
     'Basic dXNlcl9yMTRfYTJmOmhUOD8yc1U/';
   const oracleBaseUrl = req.headers['x-oracle-url'] || 
-    'https://fa-eubg-test-saasfademo1.ds-fa.oraclepdemos.com';
+    'https://fa-euth-dev58-saasfademo1.ds-fa.oraclepdemos.com';
   try {
     const { 
       assignmentSelfLink,
@@ -502,7 +502,7 @@ app.get('/api/oracle/locations', async (req, res) => {
   const oracleAuth = req.headers['x-oracle-auth'] || 
     'Basic dXNlcl9yMTRfYTJmOmhUOD8yc1U/';
   const oracleBaseUrl = req.headers['x-oracle-url'] || 
-    'https://fa-eubg-test-saasfademo1.ds-fa.oraclepdemos.com';
+    'https://fa-euth-dev58-saasfademo1.ds-fa.oraclepdemos.com';
   try {
     const https = require('https');
     const agent = new https.Agent({ rejectUnauthorized: false });
@@ -544,7 +544,7 @@ app.patch('/api/oracle/location', async (req, res) => {
   const oracleAuth = req.headers['x-oracle-auth'] || 
     'Basic dXNlcl9yMTRfYTJmOmhUOD8yc1U/';
   const oracleBaseUrl = req.headers['x-oracle-url'] || 
-    'https://fa-eubg-test-saasfademo1.ds-fa.oraclepdemos.com';
+    'https://fa-euth-dev58-saasfademo1.ds-fa.oraclepdemos.com';
   try {
     const {
       encodedPersonId,
@@ -608,7 +608,7 @@ app.get('/api/oracle/departments', async (req, res) => {
   const oracleAuth = req.headers['x-oracle-auth'] || 
     'Basic dXNlcl9yMTRfYTJmOmhUOD8yc1U/';
   const oracleBaseUrl = req.headers['x-oracle-url'] || 
-    'https://fa-eubg-test-saasfademo1.ds-fa.oraclepdemos.com';
+    'https://fa-euth-dev58-saasfademo1.ds-fa.oraclepdemos.com';
   const { BusinessUnitName } = req.query;
   try {
     const https = require('https');
