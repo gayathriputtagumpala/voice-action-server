@@ -196,7 +196,7 @@ app.get('/api/oracle/worker', async (req, res) => {
   const personNumber = req.query.person_number?.toString().trim();
   try {
     const baseUrl = (oracleBaseUrl || 'https://dabiqy.ds-fa.oraclepdemos.com').replace(/\/$/, '');
-    const url = `${baseUrl}/hcmRestApi/resources/11.13.18.05/workers?q=PersonNumber%3D${personNumber}&expand=workRelationships.assignments.managers`;
+    const url = `${baseUrl}/hcmRestApi/resources/11.13.18.05/workers?q=PersonNumber%3D${personNumber}&expand=workRelationships.assignments`;
     
     console.log('1. Person number received:', personNumber);
     console.log('3. Full URL being called:', url);
