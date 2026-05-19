@@ -189,8 +189,14 @@ app.post('/api/extract', async (req, res) => {
 
 // 3. Oracle Proxy - Get Worker
 app.get('/api/oracle/worker', async (req, res) => {
-  const oracleAuth = req.headers['x-oracle-auth'] || process.env.ORACLE_AUTH;
-  const oracleBaseUrl = req.headers['x-oracle-url'] || process.env.ORACLE_BASE_URL;
+  let oracleAuth = req.headers['x-oracle-auth'];
+  if (!oracleAuth || oracleAuth === 'null' || oracleAuth === 'undefined') {
+    oracleAuth = process.env.ORACLE_AUTH;
+  }
+  let oracleBaseUrl = req.headers['x-oracle-url'];
+  if (!oracleBaseUrl || oracleBaseUrl === 'null' || oracleBaseUrl === 'undefined') {
+    oracleBaseUrl = process.env.ORACLE_BASE_URL;
+  }
   const personNumber = req.query.person_number?.toString().trim();
   try {
     const baseUrl = (oracleBaseUrl || process.env.ORACLE_BASE_URL).replace(/\/$/, '');
@@ -304,8 +310,14 @@ app.get('/api/oracle/worker', async (req, res) => {
 
 // 4. Oracle Proxy - Get Manager
 app.get('/api/oracle/manager', async (req, res) => {
-  const oracleAuth = req.headers['x-oracle-auth'] || process.env.ORACLE_AUTH;
-  const oracleBaseUrl = req.headers['x-oracle-url'] || process.env.ORACLE_BASE_URL;
+  let oracleAuth = req.headers['x-oracle-auth'];
+  if (!oracleAuth || oracleAuth === 'null' || oracleAuth === 'undefined') {
+    oracleAuth = process.env.ORACLE_AUTH;
+  }
+  let oracleBaseUrl = req.headers['x-oracle-url'];
+  if (!oracleBaseUrl || oracleBaseUrl === 'null' || oracleBaseUrl === 'undefined') {
+    oracleBaseUrl = process.env.ORACLE_BASE_URL;
+  }
   const manager_person_number = req.query.manager_person_number?.toString().trim();
   try {
     const url = `${oracleBaseUrl || 'https://dabiqy.ds-fa.oraclepdemos.com'}/hcmRestApi/resources/11.13.18.05/workers?q=PersonNumber%3D${manager_person_number}&expand=workRelationships.assignments`;
@@ -329,8 +341,14 @@ app.get('/api/oracle/manager', async (req, res) => {
 
 // 5. Oracle Proxy - Assign Manager
 app.post('/api/oracle/assign', async (req, res) => {
-  const oracleAuth = req.headers['x-oracle-auth'] || process.env.ORACLE_AUTH;
-  const oracleBaseUrl = req.headers['x-oracle-url'] || process.env.ORACLE_BASE_URL;
+  let oracleAuth = req.headers['x-oracle-auth'];
+  if (!oracleAuth || oracleAuth === 'null' || oracleAuth === 'undefined') {
+    oracleAuth = process.env.ORACLE_AUTH;
+  }
+  let oracleBaseUrl = req.headers['x-oracle-url'];
+  if (!oracleBaseUrl || oracleBaseUrl === 'null' || oracleBaseUrl === 'undefined') {
+    oracleBaseUrl = process.env.ORACLE_BASE_URL;
+  }
   try {
     const { 
       encodedPersonId,
@@ -413,8 +431,14 @@ app.post('/api/oracle/assign', async (req, res) => {
 
 // 6. Oracle Proxy - Change Department
 app.patch('/api/oracle/department', async (req, res) => {
-  const oracleAuth = req.headers['x-oracle-auth'] || process.env.ORACLE_AUTH;
-  const oracleBaseUrl = req.headers['x-oracle-url'] || process.env.ORACLE_BASE_URL;
+  let oracleAuth = req.headers['x-oracle-auth'];
+  if (!oracleAuth || oracleAuth === 'null' || oracleAuth === 'undefined') {
+    oracleAuth = process.env.ORACLE_AUTH;
+  }
+  let oracleBaseUrl = req.headers['x-oracle-url'];
+  if (!oracleBaseUrl || oracleBaseUrl === 'null' || oracleBaseUrl === 'undefined') {
+    oracleBaseUrl = process.env.ORACLE_BASE_URL;
+  }
   try {
     const { 
       assignmentSelfLink,
@@ -491,8 +515,14 @@ app.patch('/api/oracle/department', async (req, res) => {
 });
 
 app.get('/api/oracle/locations', async (req, res) => {
-  const oracleAuth = req.headers['x-oracle-auth'] || process.env.ORACLE_AUTH;
-  const oracleBaseUrl = req.headers['x-oracle-url'] || process.env.ORACLE_BASE_URL;
+  let oracleAuth = req.headers['x-oracle-auth'];
+  if (!oracleAuth || oracleAuth === 'null' || oracleAuth === 'undefined') {
+    oracleAuth = process.env.ORACLE_AUTH;
+  }
+  let oracleBaseUrl = req.headers['x-oracle-url'];
+  if (!oracleBaseUrl || oracleBaseUrl === 'null' || oracleBaseUrl === 'undefined') {
+    oracleBaseUrl = process.env.ORACLE_BASE_URL;
+  }
   try {
     const https = require('https');
     const agent = new https.Agent({ rejectUnauthorized: false });
@@ -531,8 +561,14 @@ app.get('/api/oracle/locations', async (req, res) => {
 });
 
 app.patch('/api/oracle/location', async (req, res) => {
-  const oracleAuth = req.headers['x-oracle-auth'] || process.env.ORACLE_AUTH;
-  const oracleBaseUrl = req.headers['x-oracle-url'] || process.env.ORACLE_BASE_URL;
+  let oracleAuth = req.headers['x-oracle-auth'];
+  if (!oracleAuth || oracleAuth === 'null' || oracleAuth === 'undefined') {
+    oracleAuth = process.env.ORACLE_AUTH;
+  }
+  let oracleBaseUrl = req.headers['x-oracle-url'];
+  if (!oracleBaseUrl || oracleBaseUrl === 'null' || oracleBaseUrl === 'undefined') {
+    oracleBaseUrl = process.env.ORACLE_BASE_URL;
+  }
   try {
     const {
       encodedPersonId,
@@ -593,8 +629,14 @@ app.patch('/api/oracle/location', async (req, res) => {
 });
 
 app.get('/api/oracle/departments', async (req, res) => {
-  const oracleAuth = req.headers['x-oracle-auth'] || process.env.ORACLE_AUTH;
-  const oracleBaseUrl = req.headers['x-oracle-url'] || process.env.ORACLE_BASE_URL;
+  let oracleAuth = req.headers['x-oracle-auth'];
+  if (!oracleAuth || oracleAuth === 'null' || oracleAuth === 'undefined') {
+    oracleAuth = process.env.ORACLE_AUTH;
+  }
+  let oracleBaseUrl = req.headers['x-oracle-url'];
+  if (!oracleBaseUrl || oracleBaseUrl === 'null' || oracleBaseUrl === 'undefined') {
+    oracleBaseUrl = process.env.ORACLE_BASE_URL;
+  }
   const { BusinessUnitName } = req.query;
   try {
     const https = require('https');
