@@ -322,7 +322,9 @@ app.get('/api/oracle/worker', async (req, res) => {
       LocationId: assignment?.LocationId || null,
       LocationName: assignment?.LocationCode || 'Not Assigned',
       JobId: assignment?.JobId || null,
-      JobName: assignment?.JobName || assignment?.JobCode || 'Not Assigned'
+      JobName: assignment?.JobName || assignment?.JobCode || 'Not Assigned',
+      PositionId: assignment?.PositionId || null,
+      PositionName: assignment?.PositionName || assignment?.PositionCode || 'Not Assigned'
     });
   } catch (error) {
     console.error('Oracle Worker Error:', error.response?.data || error.message);
@@ -890,6 +892,140 @@ app.get('/api/oracle/departments', async (req, res) => {
     console.error('Departments error:', errorDetails);
     res.status(500).json({ 
       error: errorDetails
+    });
+  }
+});
+
+app.get('/api/oracle/positions', async (req, res) => {
+  let oracleAuth = req.headers['x-oracle-auth'];
+  if (!oracleAuth || oracleAuth === 'null' || oracleAuth === 'undefined') {
+    oracleAuth = process.env.ORACLE_AUTH;
+  }
+  let oracleBaseUrl = req.headers['x-oracle-url'];
+  if (!oracleBaseUrl || oracleBaseUrl === 'null' || oracleBaseUrl === 'undefined') {
+    oracleBaseUrl = process.env.ORACLE_BASE_URL;
+  }
+  try {
+    const https = require('https');
+    const agent = new https.Agent({ rejectUnauthorized: false });
+
+    const baseUrl = (oracleBaseUrl || process.env.ORACLE_BASE_URL).replace(/\/$/, '');
+    const url = `${baseUrl}/hcmRestApi/resources/11.13.18.05/positions?limit=500&fields=PositionId,PositionCode,Name&onlyData=true`;
+
+    console.log('Fetching positions from Oracle...');
+
+    const response = await axios.get(url, {
+      httpsAgent: agent,
+      headers: {
+        'Authorization': oracleAuth,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    console.log('Positions count:', response.data.count);
+
+    const positions = (response.data.items || [])
+      .filter(p => p.Name)
+      .map(p => ({
+        PositionId: p.PositionId,
+        PositionCode: p.PositionCode,
+        Name: p.Name
+      }));
+
+    res.json({ positions });
+
+  } catch (err) {
+    console.error('Positions error:', err.response?.status);
+    console.error('Positions error data:', JSON.stringify(err.response?.data || err.message));
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.patch('/api/oracle/position', async (req, res) => {
+  let oracleAuth = req.headers['x-oracle-auth'];
+  if (!oracleAuth || oracleAuth === 'null' || oracleAuth === 'undefined') {
+    oracleAuth = process.env.ORACLE_AUTH;
+  }
+  let oracleBaseUrl = req.headers['x-oracle-url'];
+  if (!oracleBaseUrl || oracleBaseUrl === 'null' || oracleBaseUrl === 'undefined') {
+    oracleBaseUrl = process.env.ORACLE_BASE_URL;
+  }
+  try {
+    const {
+      encodedPersonId,
+      WorkRelationshipId,
+      encodedAssignmentId,
+      PositionId,
+      PositionName,
+      EffectiveDate
+    } = req.body;
+
+    const effectiveDate = EffectiveDate || '2025-05-01';
+
+    console.log('=== CHANGE POSITION REQUEST ===');
+    console.log('PositionId:', PositionId);
+    console.log('PositionName:', PositionName);
+    console.log('EffectiveDate:', effectiveDate);
+
+    const baseUrl = (oracleBaseUrl || process.env.ORACLE_BASE_URL).replace(/\/$/, '');
+    const url = `${baseUrl}/hcmRestApi/resources/11.13.18.05/workers/${encodedPersonId}/child/workRelationships/${WorkRelationshipId}/child/assignments/${encodedAssignmentId}`;
+
+    console.log('PATCH URL:', url);
+
+    const https = require('https');
+    const agent = new https.Agent({ rejectUnauthorized: false });
+
+    const body = {
+      "ActionCode": "ASG_CHANGE",
+      "PositionId": Number(PositionId)
+    };
+
+    console.log('Request body:', JSON.stringify(body));
+
+    console.log('Attempting UPDATE mode for Position...');
+    try {
+      const response = await axios.patch(url, body, {
+        httpsAgent: agent,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': oracleAuth,
+          'Effective-Of': `RangeMode=UPDATE;RangeStartDate=${effectiveDate};RangeEndDate=4712-12-31`
+        }
+      });
+
+      console.log('UPDATE mode success for Position:', response.status);
+      res.json({
+        success: true,
+        message: `Position changed to ${PositionName} successfully (UPDATE mode)`
+      });
+    } catch (updateErr) {
+      console.log('UPDATE mode failed for Position, trying CORRECTION mode...');
+      console.log('Update Position Error Details:', JSON.stringify(updateErr.response?.data || updateErr.message));
+
+      const corrResponse = await axios.patch(url, body, {
+        httpsAgent: agent,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': oracleAuth,
+          'Effective-Of': 'RangeMode=CORRECTION'
+        }
+      });
+
+      console.log('CORRECTION mode success for Position:', corrResponse.status);
+      res.json({
+        success: true,
+        message: `Position changed to ${PositionName} successfully (CORRECTION mode)`
+      });
+    }
+
+  } catch (err) {
+    console.error('Position change error:', err.response?.status);
+    console.error('Position error data:', JSON.stringify(err.response?.data));
+    res.status(500).json({
+      error: err.response?.data?.detail ||
+             err.response?.data?.title ||
+             JSON.stringify(err.response?.data) ||
+             err.message
     });
   }
 });
