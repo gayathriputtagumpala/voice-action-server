@@ -201,6 +201,7 @@ app.get('/api/oracle/worker', async (req, res) => {
   try {
     const baseUrl = (oracleBaseUrl || process.env.ORACLE_BASE_URL).replace(/\/$/, '');
     const url = `${baseUrl}/hcmRestApi/resources/11.13.18.05/workers?q=PersonNumber%3D${personNumber}&expand=workRelationships.assignments`;
+    const urlName = `${baseUrl}/hcmRestApi/resources/11.13.18.05/workers?q=PersonNumber%3D${personNumber}&fields=PersonNumber,DisplayName&onlyData=true`;
     
     console.log('1. Person number received:', personNumber);
     console.log('3. Full URL being called:', url);
@@ -208,18 +209,33 @@ app.get('/api/oracle/worker', async (req, res) => {
     const https = require('https');
     const agent = new https.Agent({ rejectUnauthorized: false });
 
-    const response = await axios.get(url, {
-      httpsAgent: agent,
-      headers: {
-        'Authorization': oracleAuth,
-        'Content-Type': 'application/json'
-      }
-    });
+    const [response, responseName] = await Promise.all([
+      axios.get(url, {
+        httpsAgent: agent,
+        headers: {
+          'Authorization': oracleAuth,
+          'Content-Type': 'application/json'
+        }
+      }),
+      axios.get(urlName, {
+        httpsAgent: agent,
+        headers: {
+          'Authorization': oracleAuth,
+          'Content-Type': 'application/json'
+        }
+      })
+    ]);
 
     const worker = response.data.items?.[0];
     if (!worker) {
       return res.status(404).json({ error: 'Worker not found' });
     }
+
+    const workerName = responseName.data.items?.[0];
+    if (workerName && workerName.DisplayName) {
+      worker.DisplayName = workerName.DisplayName;
+    }
+
     const workRel = worker.workRelationships?.[0];
     const assignment = workRel?.assignments?.[0];
 
@@ -369,35 +385,41 @@ app.get('/api/oracle/managers', async (req, res) => {
     const agent = new https.Agent({ rejectUnauthorized: false });
 
     const baseUrl = (oracleBaseUrl || process.env.ORACLE_BASE_URL).replace(/\/$/, '');
-    const url = `${baseUrl}/hcmRestApi/resources/11.13.18.05/workers?limit=200&expand=workRelationships.assignments&onlyData=true`;
+    
+    const urlNames = `${baseUrl}/hcmRestApi/resources/11.13.18.05/workers?limit=250&fields=PersonNumber,DisplayName&onlyData=true`;
+    const urlAsgs = `${baseUrl}/hcmRestApi/resources/11.13.18.05/workers?limit=250&expand=workRelationships.assignments&onlyData=true`;
 
-    console.log('Fetching managers from Oracle...');
+    console.log('Fetching managers names and assignments in parallel from Oracle...');
 
-    const response = await axios.get(url, {
-      httpsAgent: agent,
-      headers: {
-        'Authorization': oracleAuth,
-        'Content-Type': 'application/json'
-      }
-    });
+    const [resNames, resAsgs] = await Promise.all([
+      axios.get(urlNames, { httpsAgent: agent, headers: { 'Authorization': oracleAuth, 'Content-Type': 'application/json' } }),
+      axios.get(urlAsgs, { httpsAgent: agent, headers: { 'Authorization': oracleAuth, 'Content-Type': 'application/json' } })
+    ]);
 
-    console.log('Workers fetched count:', response.data.items?.length || 0);
+    const nameMap = {};
+    if (resNames.data.items) {
+      resNames.data.items.forEach(item => {
+        nameMap[item.PersonNumber] = item.DisplayName;
+      });
+    }
 
     const managers = [];
-    if (response.data.items) {
-      response.data.items.forEach(item => {
+    if (resAsgs.data.items) {
+      resAsgs.data.items.forEach(item => {
         const rels = item.workRelationships && item.workRelationships[0];
         const asg = rels && rels.assignments && rels.assignments[0];
-        if (asg && item.DisplayName) {
+        if (asg) {
+          const name = nameMap[item.PersonNumber] || item.PersonNumber;
           managers.push({
             PersonNumber: item.PersonNumber,
-            DisplayName: item.DisplayName,
+            DisplayName: name,
             AssignmentId: asg.AssignmentId
           });
         }
       });
     }
 
+    console.log(`Successfully merged ${managers.length} active managers.`);
     res.json({ managers });
 
   } catch (err) {
