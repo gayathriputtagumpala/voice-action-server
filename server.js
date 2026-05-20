@@ -324,7 +324,9 @@ app.get('/api/oracle/worker', async (req, res) => {
       JobId: assignment?.JobId || null,
       JobName: assignment?.JobName || assignment?.JobCode || 'Not Assigned',
       PositionId: assignment?.PositionId || null,
-      PositionName: assignment?.PositionName || assignment?.PositionCode || 'Not Assigned'
+      PositionName: assignment?.PositionName || assignment?.PositionCode || 'Not Assigned',
+      GradeId: assignment?.GradeId || null,
+      GradeName: assignment?.GradeName || assignment?.GradeCode || 'Not Assigned'
     });
   } catch (error) {
     console.error('Oracle Worker Error:', error.response?.data || error.message);
@@ -1021,6 +1023,140 @@ app.patch('/api/oracle/position', async (req, res) => {
   } catch (err) {
     console.error('Position change error:', err.response?.status);
     console.error('Position error data:', JSON.stringify(err.response?.data));
+    res.status(500).json({
+      error: err.response?.data?.detail ||
+             err.response?.data?.title ||
+             JSON.stringify(err.response?.data) ||
+             err.message
+    });
+  }
+});
+
+app.get('/api/oracle/grades', async (req, res) => {
+  let oracleAuth = req.headers['x-oracle-auth'];
+  if (!oracleAuth || oracleAuth === 'null' || oracleAuth === 'undefined') {
+    oracleAuth = process.env.ORACLE_AUTH;
+  }
+  let oracleBaseUrl = req.headers['x-oracle-url'];
+  if (!oracleBaseUrl || oracleBaseUrl === 'null' || oracleBaseUrl === 'undefined') {
+    oracleBaseUrl = process.env.ORACLE_BASE_URL;
+  }
+  try {
+    const https = require('https');
+    const agent = new https.Agent({ rejectUnauthorized: false });
+
+    const baseUrl = (oracleBaseUrl || process.env.ORACLE_BASE_URL).replace(/\/$/, '');
+    const url = `${baseUrl}/hcmRestApi/resources/11.13.18.05/grades?limit=500&fields=GradeId,GradeCode,Name&onlyData=true`;
+
+    console.log('Fetching grades from Oracle...');
+
+    const response = await axios.get(url, {
+      httpsAgent: agent,
+      headers: {
+        'Authorization': oracleAuth,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    console.log('Grades count:', response.data.count);
+
+    const grades = (response.data.items || [])
+      .filter(g => g.Name)
+      .map(g => ({
+        GradeId: g.GradeId,
+        GradeCode: g.GradeCode,
+        Name: g.Name
+      }));
+
+    res.json({ grades });
+
+  } catch (err) {
+    console.error('Grades error:', err.response?.status);
+    console.error('Grades error data:', JSON.stringify(err.response?.data || err.message));
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.patch('/api/oracle/grade', async (req, res) => {
+  let oracleAuth = req.headers['x-oracle-auth'];
+  if (!oracleAuth || oracleAuth === 'null' || oracleAuth === 'undefined') {
+    oracleAuth = process.env.ORACLE_AUTH;
+  }
+  let oracleBaseUrl = req.headers['x-oracle-url'];
+  if (!oracleBaseUrl || oracleBaseUrl === 'null' || oracleBaseUrl === 'undefined') {
+    oracleBaseUrl = process.env.ORACLE_BASE_URL;
+  }
+  try {
+    const {
+      encodedPersonId,
+      WorkRelationshipId,
+      encodedAssignmentId,
+      GradeId,
+      GradeName,
+      EffectiveDate
+    } = req.body;
+
+    const effectiveDate = EffectiveDate || '2025-05-01';
+
+    console.log('=== CHANGE GRADE REQUEST ===');
+    console.log('GradeId:', GradeId);
+    console.log('GradeName:', GradeName);
+    console.log('EffectiveDate:', effectiveDate);
+
+    const baseUrl = (oracleBaseUrl || process.env.ORACLE_BASE_URL).replace(/\/$/, '');
+    const url = `${baseUrl}/hcmRestApi/resources/11.13.18.05/workers/${encodedPersonId}/child/workRelationships/${WorkRelationshipId}/child/assignments/${encodedAssignmentId}`;
+
+    console.log('PATCH URL:', url);
+
+    const https = require('https');
+    const agent = new https.Agent({ rejectUnauthorized: false });
+
+    const body = {
+      "ActionCode": "ASG_CHANGE",
+      "GradeId": Number(GradeId)
+    };
+
+    console.log('Request body:', JSON.stringify(body));
+
+    console.log('Attempting UPDATE mode for Grade...');
+    try {
+      const response = await axios.patch(url, body, {
+        httpsAgent: agent,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': oracleAuth,
+          'Effective-Of': `RangeMode=UPDATE;RangeStartDate=${effectiveDate};RangeEndDate=4712-12-31`
+        }
+      });
+
+      console.log('UPDATE mode success for Grade:', response.status);
+      res.json({
+        success: true,
+        message: `Grade changed to ${GradeName} successfully (UPDATE mode)`
+      });
+    } catch (updateErr) {
+      console.log('UPDATE mode failed for Grade, trying CORRECTION mode...');
+      console.log('Update Grade Error Details:', JSON.stringify(updateErr.response?.data || updateErr.message));
+
+      const corrResponse = await axios.patch(url, body, {
+        httpsAgent: agent,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': oracleAuth,
+          'Effective-Of': 'RangeMode=CORRECTION'
+        }
+      });
+
+      console.log('CORRECTION mode success for Grade:', corrResponse.status);
+      res.json({
+        success: true,
+        message: `Grade changed to ${GradeName} successfully (CORRECTION mode)`
+      });
+    }
+
+  } catch (err) {
+    console.error('Grade change error:', err.response?.status);
+    console.error('Grade error data:', JSON.stringify(err.response?.data));
     res.status(500).json({
       error: err.response?.data?.detail ||
              err.response?.data?.title ||
