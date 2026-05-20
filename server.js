@@ -333,11 +333,77 @@ app.get('/api/oracle/manager', async (req, res) => {
         'Authorization': oracleAuth,
         'Content-Type': 'application/json'
       }
+  }
+  const manager_person_number = req.query.manager_person_number?.toString().trim();
+  try {
+    const url = `${oracleBaseUrl || 'https://dabiqy.ds-fa.oraclepdemos.com'}/hcmRestApi/resources/11.13.18.05/workers?q=PersonNumber%3D${manager_person_number}&expand=workRelationships.assignments`;
+    
+    const https = require('https');
+    const agent = new https.Agent({ rejectUnauthorized: false });
+
+    const response = await axios.get(url, {
+      httpsAgent: agent,
+      headers: {
+        'Authorization': oracleAuth,
+        'Content-Type': 'application/json'
+      }
     });
     res.json(response.data);
   } catch (error) {
     console.error('Oracle Manager Error:', error.response?.data || error.message);
     res.status(500).json({ error: 'Failed to fetch manager details' });
+  }
+});
+
+app.get('/api/oracle/managers', async (req, res) => {
+  let oracleAuth = req.headers['x-oracle-auth'];
+  if (!oracleAuth || oracleAuth === 'null' || oracleAuth === 'undefined') {
+    oracleAuth = process.env.ORACLE_AUTH;
+  }
+  let oracleBaseUrl = req.headers['x-oracle-url'];
+  if (!oracleBaseUrl || oracleBaseUrl === 'null' || oracleBaseUrl === 'undefined') {
+    oracleBaseUrl = process.env.ORACLE_BASE_URL;
+  }
+  try {
+    const https = require('https');
+    const agent = new https.Agent({ rejectUnauthorized: false });
+
+    const baseUrl = (oracleBaseUrl || process.env.ORACLE_BASE_URL).replace(/\/$/, '');
+    const url = `${baseUrl}/hcmRestApi/resources/11.13.18.05/workers?limit=200&expand=workRelationships.assignments&onlyData=true`;
+
+    console.log('Fetching managers from Oracle...');
+
+    const response = await axios.get(url, {
+      httpsAgent: agent,
+      headers: {
+        'Authorization': oracleAuth,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    console.log('Workers fetched count:', response.data.items?.length || 0);
+
+    const managers = [];
+    if (response.data.items) {
+      response.data.items.forEach(item => {
+        const rels = item.workRelationships && item.workRelationships[0];
+        const asg = rels && rels.assignments && rels.assignments[0];
+        if (asg && item.DisplayName) {
+          managers.push({
+            PersonNumber: item.PersonNumber,
+            DisplayName: item.DisplayName,
+            AssignmentId: asg.AssignmentId
+          });
+        }
+      });
+    }
+
+    res.json({ managers });
+
+  } catch (err) {
+    console.error('Managers error:', err.response?.status);
+    console.error('Managers error data:', JSON.stringify(err.response?.data || err.message));
+    res.status(500).json({ error: err.message });
   }
 });
 
