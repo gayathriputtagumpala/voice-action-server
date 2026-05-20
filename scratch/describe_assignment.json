@@ -1,0 +1,2573 @@
+{
+  "Resources": {
+    "assignments": {
+      "discrColumnType": false,
+      "titlePlural": "Assignments",
+      "ServiceConfiguration": {
+        "isCompactViewByDefault": true
+      },
+      "attributes": [
+        {
+          "name": "AssignmentId",
+          "type": "integer",
+          "updatable": false,
+          "mandatory": true,
+          "queryable": true,
+          "allowChanges": "never",
+          "precision": 18,
+          "hasDefaultValueExpression": true,
+          "title": "Assignment ID",
+          "includeInCompactView": true,
+          "annotations": {
+            "description": "Surrogate identifier for the worker assignment."
+          }
+        },
+        {
+          "name": "AssignmentNumber",
+          "type": "string",
+          "updatable": true,
+          "mandatory": false,
+          "queryable": true,
+          "allowChanges": "always",
+          "precision": 30,
+          "title": "Assignment Number",
+          "includeInCompactView": true,
+          "maxLength": "30",
+          "annotations": {
+            "description": "Unique identifier for the assignment."
+          }
+        },
+        {
+          "name": "AssignmentName",
+          "type": "string",
+          "updatable": true,
+          "mandatory": false,
+          "queryable": true,
+          "allowChanges": "always",
+          "precision": 80,
+          "title": "Business Title",
+          "includeInCompactView": true,
+          "maxLength": "80",
+          "properties": {
+            "DISPLAYWIDTH": "34"
+          },
+          "annotations": {
+            "description": "Business title of the worker assignment."
+          }
+        },
+        {
+          "name": "ActionCode",
+          "type": "string",
+          "updatable": true,
+          "mandatory": false,
+          "queryable": true,
+          "allowChanges": "always",
+          "precision": 30,
+          "title": "Action Code",
+          "controlType": "choice",
+          "includeInCompactView": true,
+          "maxLength": "30",
+          "lov": {
+            "attributeMap": [
+              {
+                "source": "ActionCode",
+                "target": "ActionCode"
+              },
+              {
+                "source": "ActionId",
+                "target": "ActionId",
+                "derived": true
+              }
+            ],
+            "displayAttributes": [
+              "ActionName"
+            ],
+            "lovResourcePath": [
+              {
+                "resource": "actionsLOV"
+              }
+            ],
+            "annotations": {
+              "title": "ActionCode LOV",
+              "description": "The list of values for actions."
+            }
+          },
+          "annotations": {
+            "description": "Action being performed for this assignment, such as, Hire, Add Pending Worker, Manager Change and so on. Valid values are defined in the actionsLOV."
+          }
+        },
+        {
+          "name": "ActionName",
+          "type": "string",
+          "updatable": false,
+          "mandatory": true,
+          "queryable": false,
+          "allowChanges": "never",
+          "precision": 80,
+          "title": "Action Name",
+          "maxLength": "80",
+          "annotations": {
+            "description": "Name of the action performed on the assignment."
+          }
+        },
+        {
+          "name": "ReasonCode",
+          "type": "string",
+          "updatable": true,
+          "mandatory": false,
+          "queryable": false,
+          "allowChanges": "always",
+          "precision": 30,
+          "title": "Reason Code",
+          "controlType": "choice",
+          "includeInCompactView": true,
+          "maxLength": "30",
+          "lov": {
+            "attributeMap": [
+              {
+                "source": "ActionReasonCode",
+                "target": "ReasonCode"
+              },
+              {
+                "source": "ActionReasonId",
+                "target": "ReasonId",
+                "derived": true
+              }
+            ],
+            "displayAttributes": [
+              "ActionReason"
+            ],
+            "lovResourcePath": [
+              {
+                "resource": "actionReasonsLOV",
+                "filter": "?finder=findByActionId"
+              }
+            ],
+            "annotations": {
+              "title": "ReasonCode LOV",
+              "description": "The list of values for action reasons."
+            }
+          },
+          "annotations": {
+            "description": "Reason for the action being performed on the record. Valid values are defined in the actionReasonsLOV."
+          }
+        },
+        {
+          "name": "ReasonName",
+          "type": "string",
+          "updatable": false,
+          "mandatory": true,
+          "queryable": false,
+          "allowChanges": "never",
+          "precision": 80,
+          "title": "Action Reason",
+          "maxLength": "80",
+          "annotations": {
+            "description": "Name of the reason for the action being performed on the assignment."
+          }
+        },
+        {
+          "name": "EffectiveStartDate",
+          "type": "date",
+          "updatable": true,
+          "mandatory": true,
+          "inputRequired": true,
+          "queryable": true,
+          "allowChanges": "always",
+          "title": "Effective Start Date",
+          "includeInCompactView": true,
+          "annotations": {
+            "description": "Start date of the date-effective changes to the record."
+          }
+        },
+        {
+          "name": "EffectiveEndDate",
+          "type": "date",
+          "updatable": true,
+          "mandatory": true,
+          "inputRequired": true,
+          "queryable": true,
+          "allowChanges": "always",
+          "title": "Effective End Date",
+          "includeInCompactView": true,
+          "annotations": {
+            "description": "End date of the date-effective changes to the record."
+          }
+        },
+        {
+          "name": "EffectiveSequence",
+          "type": "integer",
+          "updatable": true,
+          "mandatory": true,
+          "inputRequired": true,
+          "queryable": true,
+          "allowChanges": "always",
+          "precision": 4,
+          "title": "Effective Sequence",
+          "includeInCompactView": true,
+          "annotations": {
+            "description": "Sequence number of the change on the effective start date. For the first change on the effective start date, set this value to 1. For incremental changes, leave this value blank to generate the next number in the sequence."
+          }
+        },
+        {
+          "name": "EffectiveLatestChange",
+          "type": "string",
+          "updatable": true,
+          "mandatory": true,
+          "inputRequired": true,
+          "queryable": true,
+          "allowChanges": "always",
+          "precision": 30,
+          "title": "Effective Latest Change",
+          "includeInCompactView": true,
+          "maxLength": "30",
+          "annotations": {
+            "description": "Set to Y if this is the last change on the effective start date. Otherwise, set to N."
+          }
+        },
+        {
+          "name": "BusinessUnitId",
+          "type": "integer",
+          "updatable": true,
+          "mandatory": true,
+          "inputRequired": true,
+          "queryable": true,
+          "allowChanges": "always",
+          "precision": 18,
+          "title": "Business Unit ID",
+          "includeInCompactView": true,
+          "annotations": {
+            "description": "Unique identifier for the business unit of the assignment."
+          }
+        },
+        {
+          "name": "BusinessUnitName",
+          "type": "string",
+          "updatable": true,
+          "mandatory": false,
+          "queryable": true,
+          "allowChanges": "always",
+          "precision": 240,
+          "title": "Business Unit",
+          "controlType": "choice",
+          "includeInCompactView": true,
+          "maxLength": "240",
+          "properties": {
+            "DISPLAYWIDTH": "25",
+            "TOOLTIP": "Business Unit"
+          },
+          "lov": {
+            "attributeMap": [
+              {
+                "source": "Name",
+                "target": "BusinessUnitName"
+              },
+              {
+                "source": "BusinessUnitId",
+                "target": "BusinessUnitId",
+                "derived": true
+              }
+            ],
+            "displayAttributes": [
+              "Name"
+            ],
+            "lovResourcePath": [
+              {
+                "resource": "hcmBusinessUnitsLOV"
+              }
+            ],
+            "annotations": {
+              "title": "BusinessUnitName LOV",
+              "description": "The list of values for business units."
+            }
+          },
+          "annotations": {
+            "description": "Name of the business unit for the worker assignment. Valid values are defined in the hcmBusinesUnitsLOV."
+          }
+        },
+        {
+          "name": "AssignmentType",
+          "type": "string",
+          "updatable": false,
+          "mandatory": true,
+          "queryable": true,
+          "allowChanges": "never",
+          "precision": 30,
+          "title": "Assignment Type",
+          "includeInCompactView": true,
+          "maxLength": "30",
+          "annotations": {
+            "description": "Type of the assignment such as employee or contingent worker."
+          }
+        },
+        {
+          "name": "AssignmentTypeMeaning",
+          "type": "string",
+          "updatable": false,
+          "mandatory": true,
+          "queryable": false,
+          "allowChanges": "never",
+          "precision": 80,
+          "title": "Meaning",
+          "maxLength": "80",
+          "annotations": {
+            "description": "Meaning of the assignment type."
+          }
+        },
+        {
+          "name": "AssignmentStatusTypeId",
+          "type": "integer",
+          "updatable": true,
+          "mandatory": true,
+          "inputRequired": true,
+          "queryable": false,
+          "allowChanges": "always",
+          "precision": 18,
+          "title": "Assignment Status Type ID",
+          "includeInCompactView": true,
+          "annotations": {
+            "description": "Unique identifier for the assignment status type."
+          }
+        },
+        {
+          "name": "AssignmentStatusTypeCode",
+          "type": "string",
+          "updatable": true,
+          "mandatory": true,
+          "queryable": false,
+          "allowChanges": "always",
+          "precision": 30,
+          "title": "Assignment Status Code",
+          "controlType": "choice",
+          "includeInCompactView": true,
+          "maxLength": "30",
+          "lov": {
+            "attributeMap": [
+              {
+                "source": "AssignmentStatusCode",
+                "target": "AssignmentStatusTypeCode"
+              },
+              {
+                "source": "AssignmentStatusTypeId",
+                "target": "AssignmentStatusTypeId",
+                "derived": true
+              }
+            ],
+            "displayAttributes": [
+              "UserStatus"
+            ],
+            "lovResourcePath": [
+              {
+                "resource": "assignmentStatusTypesLov"
+              }
+            ],
+            "annotations": {
+              "title": "AssignmentStatusTypeCode LOV",
+              "description": "The list of values for assignment status types."
+            }
+          },
+          "annotations": {
+            "description": "Code for the assignment status type."
+          }
+        },
+        {
+          "name": "AssignmentStatusType",
+          "type": "string",
+          "updatable": false,
+          "mandatory": true,
+          "queryable": true,
+          "allowChanges": "never",
+          "precision": 30,
+          "title": "Assignment Status",
+          "includeInCompactView": true,
+          "maxLength": "30",
+          "annotations": {
+            "description": "Assignment status type. Valid values are defined in the assignmentStatusTypesLov."
+          }
+        },
+        {
+          "name": "SystemPersonType",
+          "type": "string",
+          "updatable": false,
+          "mandatory": false,
+          "queryable": false,
+          "allowChanges": "never",
+          "precision": 30,
+          "title": "System Person Type",
+          "includeInCompactView": true,
+          "maxLength": "30",
+          "annotations": {
+            "description": "Application-defined value that identifies a person type, such as employee or contingent worker."
+          }
+        },
+        {
+          "name": "UserPersonTypeId",
+          "type": "integer",
+          "updatable": true,
+          "mandatory": false,
+          "queryable": true,
+          "allowChanges": "always",
+          "precision": 18,
+          "title": "User Person Type ID",
+          "includeInCompactView": true,
+          "annotations": {
+            "description": "Unique identifier for the user person type."
+          }
+        },
+        {
+          "name": "UserPersonType",
+          "type": "string",
+          "updatable": true,
+          "mandatory": false,
+          "queryable": false,
+          "allowChanges": "always",
+          "precision": 80,
+          "title": "User Person Type",
+          "controlType": "choice",
+          "includeInCompactView": true,
+          "maxLength": "80",
+          "lov": {
+            "attributeMap": [
+              {
+                "source": "UserPersonType",
+                "target": "UserPersonType"
+              },
+              {
+                "source": "PersonTypeId",
+                "target": "UserPersonTypeId",
+                "derived": true
+              }
+            ],
+            "displayAttributes": [
+              "UserPersonType"
+            ],
+            "lovResourcePath": [
+              {
+                "resource": "personTypesLOV"
+              }
+            ],
+            "annotations": {
+              "title": "UserPersonType LOV",
+              "description": "The list of values for person types."
+            }
+          },
+          "annotations": {
+            "description": "User-defined value that identifies the person type such as employee or contingent worker. Valid values are defined in the personTypesLOV."
+          }
+        },
+        {
+          "name": "ProposedUserPersonTypeId",
+          "type": "string",
+          "updatable": true,
+          "mandatory": false,
+          "queryable": true,
+          "allowChanges": "inCreate",
+          "precision": 30,
+          "title": "Proposed User Person Type ID",
+          "includeInCompactView": true,
+          "maxLength": "30",
+          "annotations": {
+            "description": "Unique identifier for the proposed user person type."
+          }
+        },
+        {
+          "name": "ProposedUserPersonType",
+          "type": "string",
+          "updatable": true,
+          "mandatory": false,
+          "queryable": true,
+          "allowChanges": "inCreate",
+          "precision": 80,
+          "title": "Proposed Person Type",
+          "controlType": "choice",
+          "includeInCompactView": true,
+          "maxLength": "80",
+          "lov": {
+            "attributeMap": [
+              {
+                "source": "UserPersonType",
+                "target": "ProposedUserPersonType"
+              },
+              {
+                "source": "PersonTypeId",
+                "target": "ProposedUserPersonTypeId",
+                "derived": true
+              },
+              {
+                "source": "SystemPersonType",
+                "target": "ProposedUserSystemPersonType",
+                "derived": true
+              }
+            ],
+            "displayAttributes": [
+              "UserPersonType"
+            ],
+            "lovResourcePath": [
+              {
+                "resource": "personTypesLOV"
+              }
+            ],
+            "annotations": {
+              "title": "ProposedUserPersonType LOV",
+              "description": "The list of values for person types."
+            }
+          },
+          "annotations": {
+            "description": "Code of the proposed user person type. Valid values are defined in the personTypesLOV."
+          }
+        },
+        {
+          "name": "ProjectedStartDate",
+          "type": "date",
+          "updatable": true,
+          "mandatory": false,
+          "queryable": true,
+          "allowChanges": "always",
+          "title": "Projected Start Date",
+          "includeInCompactView": true,
+          "annotations": {
+            "description": "Expected start date for applicants. This value is required for pending workers."
+          }
+        },
+        {
+          "name": "ProjectedEndDate",
+          "type": "date",
+          "updatable": true,
+          "mandatory": false,
+          "queryable": true,
+          "allowChanges": "always",
+          "title": "Projected End Date",
+          "includeInCompactView": true,
+          "annotations": {
+            "description": "Date when the assignment is expected to end."
+          }
+        },
+        {
+          "name": "PrimaryFlag",
+          "type": "boolean",
+          "updatable": false,
+          "mandatory": true,
+          "queryable": true,
+          "allowChanges": "never",
+          "precision": 30,
+          "defaultValue": false,
+          "title": "Primary",
+          "includeInCompactView": true,
+          "maxLength": "30",
+          "annotations": {
+            "description": "Indicates whether the current assignment is the primary assignment for the worker. Valid values are true or false."
+          }
+        },
+        {
+          "name": "PrimaryAssignmentFlag",
+          "type": "boolean",
+          "updatable": true,
+          "mandatory": false,
+          "queryable": true,
+          "allowChanges": "always",
+          "precision": 30,
+          "defaultValue": false,
+          "title": "Primary Assignment",
+          "includeInCompactView": true,
+          "maxLength": "30",
+          "annotations": {
+            "description": "Indicates whether the current assignment is primary for the work relationship. Valid values are true or false."
+          }
+        },
+        {
+          "name": "PositionId",
+          "type": "integer",
+          "updatable": true,
+          "mandatory": false,
+          "queryable": true,
+          "allowChanges": "always",
+          "precision": 18,
+          "title": "Position ID",
+          "includeInCompactView": true,
+          "annotations": {
+            "description": "Unique identifier for the worker's position."
+          }
+        },
+        {
+          "name": "PositionCode",
+          "type": "string",
+          "updatable": true,
+          "mandatory": false,
+          "queryable": true,
+          "allowChanges": "always",
+          "precision": 30,
+          "title": "Position Code",
+          "controlType": "choice",
+          "includeInCompactView": true,
+          "maxLength": "30",
+          "properties": {
+            "DISPLAYWIDTH": "40"
+          },
+          "lov": {
+            "attributeMap": [
+              {
+                "source": "PositionCode",
+                "target": "PositionCode"
+              },
+              {
+                "source": "PositionId",
+                "target": "PositionId",
+                "derived": true
+              }
+            ],
+            "displayAttributes": [
+              "PositionCode"
+            ],
+            "lovResourcePath": [
+              {
+                "resource": "positionsLov"
+              }
+            ],
+            "annotations": {
+              "title": "PositionCode LOV",
+              "description": "The list of values for positions."
+            }
+          },
+          "annotations": {
+            "description": "Code for the worker's position."
+          }
+        },
+        {
+          "name": "PositionName",
+          "type": "string",
+          "updatable": false,
+          "mandatory": true,
+          "queryable": false,
+          "allowChanges": "never",
+          "precision": 240,
+          "title": "Position",
+          "maxLength": "240",
+          "properties": {
+            "DISPLAYWIDTH": "40"
+          },
+          "annotations": {
+            "description": "Name of the position."
+          }
+        },
+        {
+          "name": "SynchronizeFromPositionFlag",
+          "type": "boolean",
+          "updatable": true,
+          "mandatory": true,
+          "queryable": true,
+          "allowChanges": "always",
+          "precision": 30,
+          "defaultValue": false,
+          "title": "Synchronize from Position",
+          "includeInCompactView": true,
+          "maxLength": "30",
+          "annotations": {
+            "description": "Indicates whether attributes from the position can be overridden on the assignment when using position synchronization. Valid values are true or false."
+          }
+        },
+        {
+          "name": "JobId",
+          "type": "integer",
+          "updatable": true,
+          "mandatory": false,
+          "queryable": true,
+          "allowChanges": "always",
+          "precision": 18,
+          "title": "Job ID",
+          "includeInCompactView": true,
+          "annotations": {
+            "description": "Unique identifier for the worker's job."
+          }
+        },
+        {
+          "name": "JobCode",
+          "type": "string",
+          "updatable": true,
+          "mandatory": false,
+          "queryable": true,
+          "allowChanges": "always",
+          "precision": 30,
+          "title": "Job Code",
+          "controlType": "choice",
+          "includeInCompactView": true,
+          "maxLength": "30",
+          "properties": {
+            "DISPLAYWIDTH": "40"
+          },
+          "dependencies": [
+            "BusinessUnitId",
+            "BusinessUnitName"
+          ],
+          "lov": {
+            "attributeMap": [
+              {
+                "source": "JobCode",
+                "target": "JobCode"
+              },
+              {
+                "source": "JobId",
+                "target": "JobId",
+                "derived": true
+              }
+            ],
+            "displayAttributes": [
+              "JobCode"
+            ],
+            "lovResourcePath": [
+              {
+                "resource": "jobsLov"
+              }
+            ],
+            "annotations": {
+              "title": "JobCode LOV",
+              "description": "The list of values for jobs."
+            }
+          },
+          "annotations": {
+            "description": "Code for the worker's job. Valid values are defined in the jobsLov."
+          }
+        },
+        {
+          "name": "JobName",
+          "type": "string",
+          "updatable": false,
+          "mandatory": false,
+          "queryable": false,
+          "allowChanges": "never",
+          "precision": 240,
+          "title": "Job",
+          "maxLength": "240",
+          "properties": {
+            "DISPLAYWIDTH": "40"
+          },
+          "annotations": {
+            "description": "Name of the job."
+          }
+        },
+        {
+          "name": "GradeId",
+          "type": "integer",
+          "updatable": true,
+          "mandatory": false,
+          "queryable": true,
+          "allowChanges": "always",
+          "precision": 18,
+          "title": "Grade ID",
+          "includeInCompactView": true,
+          "annotations": {
+            "description": "Unique identifier for the worker's grade."
+          }
+        },
+        {
+          "name": "GradeCode",
+          "type": "string",
+          "updatable": true,
+          "mandatory": false,
+          "queryable": true,
+          "allowChanges": "always",
+          "precision": 30,
+          "title": "Grade Code",
+          "controlType": "choice",
+          "includeInCompactView": true,
+          "maxLength": "30",
+          "properties": {
+            "DISPLAYWIDTH": "40"
+          },
+          "dependencies": [
+            "BusinessUnitId",
+            "BusinessUnitName"
+          ],
+          "lov": {
+            "attributeMap": [
+              {
+                "source": "GradeCode",
+                "target": "GradeCode"
+              },
+              {
+                "source": "GradeId",
+                "target": "GradeId",
+                "derived": true
+              }
+            ],
+            "displayAttributes": [
+              "GradeCode"
+            ],
+            "lovResourcePath": [
+              {
+                "resource": "gradesLov"
+              }
+            ],
+            "annotations": {
+              "title": "GradeCode LOV",
+              "description": "The list of values for grades."
+            }
+          },
+          "annotations": {
+            "description": "Code of the assignment grade. Valid values are defined in the gradesLov."
+          }
+        },
+        {
+          "name": "GradeName",
+          "type": "string",
+          "updatable": false,
+          "mandatory": true,
+          "queryable": false,
+          "allowChanges": "never",
+          "precision": 240,
+          "title": "Grade",
+          "maxLength": "240",
+          "properties": {
+            "DISPLAYWIDTH": "40"
+          },
+          "annotations": {
+            "description": "Name of the grade."
+          }
+        },
+        {
+          "name": "GradeLadderId",
+          "type": "integer",
+          "updatable": true,
+          "mandatory": false,
+          "queryable": true,
+          "allowChanges": "always",
+          "precision": 18,
+          "title": "Grade Ladder ID",
+          "includeInCompactView": true,
+          "annotations": {
+            "description": "Unique identifier for the grade ladder used for benefits."
+          }
+        },
+        {
+          "name": "GradeLadderName",
+          "type": "string",
+          "updatable": true,
+          "mandatory": false,
+          "queryable": true,
+          "allowChanges": "always",
+          "precision": 240,
+          "title": "Grade Ladder",
+          "controlType": "choice",
+          "includeInCompactView": true,
+          "maxLength": "240",
+          "properties": {
+            "DISPLAYWIDTH": "40"
+          },
+          "lov": {
+            "attributeMap": [
+              {
+                "source": "Name",
+                "target": "GradeLadderName"
+              },
+              {
+                "source": "GradeLadderId",
+                "target": "GradeLadderId",
+                "derived": true
+              }
+            ],
+            "displayAttributes": [
+              "Name"
+            ],
+            "lovResourcePath": [
+              {
+                "resource": "gradeLaddersLov"
+              }
+            ],
+            "annotations": {
+              "title": "GradeLadderName LOV",
+              "description": "The list of values for grade ladders."
+            }
+          },
+          "annotations": {
+            "description": "Name of the grade ladder used for benefits. Valid values are defined in the gradeLaddersLov."
+          }
+        },
+        {
+          "name": "GradeStepEligibilityFlag",
+          "type": "boolean",
+          "updatable": true,
+          "mandatory": false,
+          "queryable": true,
+          "allowChanges": "always",
+          "precision": 30,
+          "defaultValue": true,
+          "title": "Include in Grade Step Progression",
+          "includeInCompactView": true,
+          "maxLength": "30",
+          "annotations": {
+            "description": "Indicates whether the assignment is eligible for grade-step progression. Valid values are true or false."
+          }
+        },
+        {
+          "name": "GradeCeilingStepId",
+          "type": "integer",
+          "updatable": false,
+          "mandatory": false,
+          "queryable": false,
+          "allowChanges": "never",
+          "precision": 18,
+          "title": "Grade Ceiling Step ID",
+          "includeInCompactView": true,
+          "annotations": {
+            "description": "Unique identifier for the grade step of the assignment."
+          }
+        },
+        {
+          "name": "GradeCeilingStep",
+          "type": "string",
+          "updatable": false,
+          "mandatory": false,
+          "queryable": false,
+          "allowChanges": "never",
+          "title": "Special Ceiling Step",
+          "includeInCompactView": true,
+          "annotations": {
+            "description": "Grade step for this assignment."
+          }
+        },
+        {
+          "name": "DepartmentId",
+          "type": "integer",
+          "updatable": true,
+          "mandatory": false,
+          "queryable": true,
+          "allowChanges": "always",
+          "precision": 18,
+          "title": "Department ID",
+          "includeInCompactView": true,
+          "annotations": {
+            "description": "Unique identifier for the worker's department."
+          }
+        },
+        {
+          "name": "DepartmentName",
+          "type": "string",
+          "updatable": true,
+          "mandatory": false,
+          "queryable": true,
+          "allowChanges": "always",
+          "precision": 240,
+          "title": "Department",
+          "controlType": "choice",
+          "includeInCompactView": true,
+          "maxLength": "240",
+          "properties": {
+            "DISPLAYWIDTH": "40"
+          },
+          "lov": {
+            "attributeMap": [
+              {
+                "source": "Name",
+                "target": "DepartmentName"
+              },
+              {
+                "source": "OrganizationId",
+                "target": "DepartmentId",
+                "derived": true
+              }
+            ],
+            "displayAttributes": [
+              "Name"
+            ],
+            "lovResourcePath": [
+              {
+                "resource": "departmentsLov"
+              }
+            ],
+            "annotations": {
+              "title": "DepartmentName LOV",
+              "description": "The list of values for departments."
+            }
+          },
+          "annotations": {
+            "description": "Name of the department for the worker assignment. Valid values are defined in the departmentsLov."
+          }
+        },
+        {
+          "name": "ReportingEstablishmentId",
+          "type": "integer",
+          "updatable": true,
+          "mandatory": false,
+          "queryable": true,
+          "allowChanges": "always",
+          "precision": 18,
+          "title": "Reporting Establishment ID",
+          "includeInCompactView": true,
+          "annotations": {
+            "description": "Unique identifier for the reporting establishment."
+          }
+        },
+        {
+          "name": "ReportingEstablishmentName",
+          "type": "string",
+          "updatable": true,
+          "mandatory": false,
+          "queryable": true,
+          "allowChanges": "always",
+          "precision": 240,
+          "title": "Reporting Establishment",
+          "controlType": "choice",
+          "includeInCompactView": true,
+          "maxLength": "240",
+          "properties": {
+            "DISPLAYWIDTH": "50"
+          },
+          "lov": {
+            "attributeMap": [
+              {
+                "source": "Name",
+                "target": "ReportingEstablishmentName"
+              },
+              {
+                "source": "OrganizationId",
+                "target": "ReportingEstablishmentId",
+                "derived": true
+              }
+            ],
+            "displayAttributes": [
+              "Name"
+            ],
+            "lovResourcePath": [
+              {
+                "resource": "reportingEstablishmentsLOV"
+              }
+            ],
+            "annotations": {
+              "title": "ReportingEstablishmentName LOV",
+              "description": "The list of values for reporting establishments."
+            }
+          },
+          "annotations": {
+            "description": "Name of the reporting establishment. Valid values are defined in the reportingEstablishmentsLOV."
+          }
+        },
+        {
+          "name": "LocationId",
+          "type": "integer",
+          "updatable": true,
+          "mandatory": false,
+          "queryable": true,
+          "allowChanges": "always",
+          "precision": 18,
+          "title": "Location ID",
+          "includeInCompactView": true,
+          "annotations": {
+            "description": "Unique identifier for the worker's location."
+          }
+        },
+        {
+          "name": "LocationCode",
+          "type": "string",
+          "updatable": true,
+          "mandatory": false,
+          "queryable": true,
+          "allowChanges": "always",
+          "precision": 150,
+          "title": "Location Code",
+          "controlType": "choice",
+          "includeInCompactView": true,
+          "maxLength": "150",
+          "properties": {
+            "DISPLAYWIDTH": "40"
+          },
+          "dependencies": [
+            "BusinessUnitId",
+            "BusinessUnitName"
+          ],
+          "lov": {
+            "attributeMap": [
+              {
+                "source": "LocationCode",
+                "target": "LocationCode"
+              },
+              {
+                "source": "LocationId",
+                "target": "LocationId",
+                "derived": true
+              }
+            ],
+            "displayAttributes": [
+              "LocationName"
+            ],
+            "lovResourcePath": [
+              {
+                "resource": "locationsLov"
+              }
+            ],
+            "annotations": {
+              "title": "LocationCode LOV",
+              "description": "The list of values for locations."
+            }
+          },
+          "annotations": {
+            "description": "Code for the worker's location."
+          }
+        },
+        {
+          "name": "LocationName",
+          "type": "string",
+          "updatable": false,
+          "mandatory": true,
+          "queryable": false,
+          "allowChanges": "never",
+          "precision": 240,
+          "title": "Display Name",
+          "maxLength": "240",
+          "annotations": {
+            "description": "Name of the assignment location."
+          }
+        },
+        {
+          "name": "WorkAtHomeFlag",
+          "type": "boolean",
+          "updatable": true,
+          "mandatory": false,
+          "queryable": true,
+          "allowChanges": "always",
+          "precision": 30,
+          "title": "Working at Home",
+          "includeInCompactView": true,
+          "maxLength": "30",
+          "annotations": {
+            "description": "Indicates whether the worker works at home for the assignment."
+          }
+        },
+        {
+          "name": "AssignmentCategory",
+          "type": "string",
+          "updatable": true,
+          "mandatory": false,
+          "queryable": true,
+          "allowChanges": "always",
+          "precision": 30,
+          "title": "Assignment Category",
+          "controlType": "choice",
+          "includeInCompactView": true,
+          "maxLength": "30",
+          "lov": {
+            "attributeMap": [
+              {
+                "source": "LookupCode",
+                "target": "AssignmentCategory"
+              }
+            ],
+            "displayAttributes": [
+              "Meaning"
+            ],
+            "lovResourcePath": [
+              {
+                "resource": "commonLookupsLOV",
+                "filter": "?finder=LegislationCodeFinder%3BLookupType%3DEMP_CAT"
+              }
+            ]
+          },
+          "annotations": {
+            "description": "User-defined category for the assignment such as full-time, permanent, and so on. Valid values are defined in the commonLookupsLOV."
+          }
+        },
+        {
+          "name": "AssignmentCategoryMeaning",
+          "type": "string",
+          "updatable": false,
+          "mandatory": true,
+          "queryable": false,
+          "allowChanges": "never",
+          "precision": 80,
+          "title": "Meaning",
+          "maxLength": "80",
+          "annotations": {
+            "description": "Meaning of the assignment category."
+          }
+        },
+        {
+          "name": "WorkerCategory",
+          "type": "string",
+          "updatable": true,
+          "mandatory": false,
+          "queryable": true,
+          "allowChanges": "always",
+          "precision": 30,
+          "title": "Worker Category",
+          "controlType": "choice",
+          "includeInCompactView": true,
+          "maxLength": "30",
+          "lov": {
+            "attributeMap": [
+              {
+                "source": "LookupCode",
+                "target": "WorkerCategory"
+              }
+            ],
+            "displayAttributes": [
+              "Meaning"
+            ],
+            "lovResourcePath": [
+              {
+                "resource": "commonLookupsLOV",
+                "filter": "?finder=LegislationCodeFinder%3BLookupType%3DEMPLOYEE_CATG"
+              }
+            ]
+          },
+          "annotations": {
+            "description": "Category of the worker such as blue collar, civil servant, and so on. Valid values are defined in the commonLookupsLOV."
+          }
+        },
+        {
+          "name": "WorkerCategoryMeaning",
+          "type": "string",
+          "updatable": false,
+          "mandatory": true,
+          "queryable": false,
+          "allowChanges": "never",
+          "precision": 80,
+          "title": "Meaning",
+          "maxLength": "80",
+          "annotations": {
+            "description": "Meaning of the worker category."
+          }
+        },
+        {
+          "name": "PermanentTemporary",
+          "type": "string",
+          "updatable": true,
+          "mandatory": false,
+          "queryable": true,
+          "allowChanges": "always",
+          "precision": 30,
+          "title": "Regular or Temporary",
+          "controlType": "choice",
+          "includeInCompactView": true,
+          "maxLength": "30",
+          "lov": {
+            "attributeMap": [
+              {
+                "source": "LookupCode",
+                "target": "PermanentTemporary"
+              }
+            ],
+            "displayAttributes": [
+              "Meaning"
+            ],
+            "lovResourcePath": [
+              {
+                "resource": "commonLookupsLOV",
+                "filter": "?finder=LookupTypeFinder%3BLookupType%3DREGULAR_TEMPORARY"
+              }
+            ]
+          },
+          "annotations": {
+            "description": "Indicates whether the worker is regular or temporary. Valid values are defined in the commonLookupsLOV."
+          }
+        },
+        {
+          "name": "PermanentTemporaryMeaning",
+          "type": "string",
+          "updatable": false,
+          "mandatory": true,
+          "queryable": false,
+          "allowChanges": "never",
+          "precision": 80,
+          "title": "Meaning",
+          "maxLength": "80",
+          "annotations": {
+            "description": "Meaning that indicates whether the worker is permanent or temporary."
+          }
+        },
+        {
+          "name": "FullPartTime",
+          "type": "string",
+          "updatable": true,
+          "mandatory": false,
+          "queryable": true,
+          "allowChanges": "always",
+          "precision": 30,
+          "title": "Full Time or Part Time",
+          "controlType": "choice",
+          "includeInCompactView": true,
+          "maxLength": "30",
+          "lov": {
+            "attributeMap": [
+              {
+                "source": "LookupCode",
+                "target": "FullPartTime"
+              }
+            ],
+            "displayAttributes": [
+              "Meaning"
+            ],
+            "lovResourcePath": [
+              {
+                "resource": "commonLookupsLOV",
+                "filter": "?finder=LookupTypeFinder%3BLookupType%3DPART_FULL_TIME"
+              }
+            ]
+          },
+          "annotations": {
+            "description": "Indicates whether the worker works full-time or part-time. Valid values are defined in the commonLookupsLOV."
+          }
+        },
+        {
+          "name": "FullPartTimeMeaning",
+          "type": "string",
+          "updatable": false,
+          "mandatory": true,
+          "queryable": false,
+          "allowChanges": "never",
+          "precision": 80,
+          "title": "Meaning",
+          "maxLength": "80",
+          "annotations": {
+            "description": "Meaning that indicates whether the worker is full time or part time."
+          }
+        },
+        {
+          "name": "ManagerFlag",
+          "type": "boolean",
+          "updatable": true,
+          "mandatory": false,
+          "queryable": true,
+          "allowChanges": "always",
+          "precision": 30,
+          "title": "Working as a Manager",
+          "includeInCompactView": true,
+          "maxLength": "30",
+          "annotations": {
+            "description": "Indicates whether the worker is a manager."
+          }
+        },
+        {
+          "name": "HourlySalariedCode",
+          "type": "string",
+          "updatable": true,
+          "mandatory": false,
+          "queryable": true,
+          "allowChanges": "always",
+          "precision": 30,
+          "title": "Hourly Paid or Salaried",
+          "controlType": "choice",
+          "includeInCompactView": true,
+          "maxLength": "30",
+          "lov": {
+            "attributeMap": [
+              {
+                "source": "LookupCode",
+                "target": "HourlySalariedCode"
+              }
+            ],
+            "displayAttributes": [
+              "Meaning"
+            ],
+            "lovResourcePath": [
+              {
+                "resource": "commonLookupsLOV",
+                "filter": "?finder=LegislationCodeFinder%3BLookupType%3DHOURLY_SALARIED_CODE"
+              }
+            ]
+          },
+          "annotations": {
+            "description": "Identifies whether the assignment is paid by the hour or by a salary. Either maintained at the assignment level or employment or placement terms but not both. Valid values are defined in the commonLookupsLOV."
+          }
+        },
+        {
+          "name": "HourlySalariedMeaning",
+          "type": "string",
+          "updatable": false,
+          "mandatory": true,
+          "queryable": false,
+          "allowChanges": "never",
+          "precision": 80,
+          "title": "Meaning",
+          "maxLength": "80",
+          "annotations": {
+            "description": "Meaning that indicates whether the worker is hourly or salaried."
+          }
+        },
+        {
+          "name": "NormalHours",
+          "type": "number",
+          "updatable": true,
+          "mandatory": false,
+          "queryable": false,
+          "allowChanges": "always",
+          "precision": 22,
+          "scale": 3,
+          "title": "Working Hours",
+          "includeInCompactView": true,
+          "annotations": {
+            "description": "Normal working hours, such as 37.5. Specify with the Frequency attribute."
+          }
+        },
+        {
+          "name": "Frequency",
+          "type": "string",
+          "updatable": true,
+          "mandatory": false,
+          "queryable": false,
+          "allowChanges": "always",
+          "precision": 30,
+          "title": "Frequency",
+          "controlType": "choice",
+          "includeInCompactView": true,
+          "maxLength": "30",
+          "lov": {
+            "attributeMap": [
+              {
+                "source": "LookupCode",
+                "target": "Frequency"
+              }
+            ],
+            "displayAttributes": [
+              "Meaning"
+            ],
+            "lovResourcePath": [
+              {
+                "resource": "commonLookupsLOV",
+                "filter": "?finder=LookupTypeFinder%3BLookupType%3DFREQUENCY"
+              }
+            ]
+          },
+          "annotations": {
+            "description": "Frequency of normal working hours such as week or month. Specify with the NormalHours attribute. Valid values are defined in the commonLookupsLOV."
+          }
+        },
+        {
+          "name": "FrequencyMeaning",
+          "type": "string",
+          "updatable": false,
+          "mandatory": true,
+          "queryable": false,
+          "allowChanges": "never",
+          "precision": 80,
+          "title": "Meaning",
+          "maxLength": "80",
+          "annotations": {
+            "description": "Meaning of the assignment frequency."
+          }
+        },
+        {
+          "name": "StartTime",
+          "type": "string",
+          "updatable": true,
+          "mandatory": false,
+          "queryable": false,
+          "allowChanges": "always",
+          "precision": 5,
+          "title": "Start Time",
+          "includeInCompactView": true,
+          "maxLength": "5",
+          "annotations": {
+            "description": "Normal start time for the working day."
+          }
+        },
+        {
+          "name": "EndTime",
+          "type": "string",
+          "updatable": true,
+          "mandatory": false,
+          "queryable": false,
+          "allowChanges": "always",
+          "precision": 5,
+          "title": "End Time",
+          "includeInCompactView": true,
+          "maxLength": "5",
+          "annotations": {
+            "description": "Normal end time for the working day."
+          }
+        },
+        {
+          "name": "SeniorityBasis",
+          "type": "string",
+          "updatable": true,
+          "mandatory": false,
+          "queryable": true,
+          "allowChanges": "always",
+          "precision": 30,
+          "defaultValue": "ORA_PER_SNDT_DAYS",
+          "title": "Basis for Seniority Calculation",
+          "controlType": "choice",
+          "includeInCompactView": true,
+          "maxLength": "30",
+          "lov": {
+            "attributeMap": [
+              {
+                "source": "LookupCode",
+                "target": "SeniorityBasis"
+              }
+            ],
+            "displayAttributes": [
+              "Meaning"
+            ],
+            "lovResourcePath": [
+              {
+                "resource": "commonLookupsLOV",
+                "filter": "?finder=LookupTypeFinder%3BLookupType%3DORA_PER_SENIORITY_CALC_BASIS"
+              }
+            ]
+          },
+          "annotations": {
+            "description": "Basis for calculating seniority for the person. Valid values are defined in the commonLookupsLOV."
+          }
+        },
+        {
+          "name": "SeniorityBasisMeaning",
+          "type": "string",
+          "updatable": false,
+          "mandatory": true,
+          "queryable": false,
+          "allowChanges": "never",
+          "precision": 80,
+          "title": "Meaning",
+          "maxLength": "80",
+          "annotations": {
+            "description": "Meaning of the seniority basis."
+          }
+        },
+        {
+          "name": "ProbationPeriod",
+          "type": "number",
+          "updatable": true,
+          "mandatory": false,
+          "queryable": true,
+          "allowChanges": "always",
+          "precision": 25,
+          "scale": 5,
+          "title": "Probation Period",
+          "includeInCompactView": true,
+          "annotations": {
+            "description": "Duration of the probation period. Specify with the ProbationPeriodUnit attribute."
+          }
+        },
+        {
+          "name": "ProbationPeriodUnit",
+          "type": "string",
+          "updatable": true,
+          "mandatory": false,
+          "queryable": true,
+          "allowChanges": "always",
+          "precision": 30,
+          "title": "Probation Unit",
+          "controlType": "choice",
+          "includeInCompactView": true,
+          "maxLength": "30",
+          "lov": {
+            "attributeMap": [
+              {
+                "source": "LookupCode",
+                "target": "ProbationPeriodUnit"
+              }
+            ],
+            "displayAttributes": [
+              "Meaning"
+            ],
+            "lovResourcePath": [
+              {
+                "resource": "commonLookupsLOV",
+                "filter": "?finder=LookupTypeFinder%3BLookupType%3DQUALIFYING_UNITS"
+              }
+            ]
+          },
+          "annotations": {
+            "description": "Unit of measure for the probation period. Specify with the ProbationPeriod attribute. Valid values are defined in the commonLookupsLOV."
+          }
+        },
+        {
+          "name": "ProbationPeriodUnitMeaning",
+          "type": "string",
+          "updatable": false,
+          "mandatory": true,
+          "queryable": false,
+          "allowChanges": "never",
+          "precision": 80,
+          "title": "Meaning",
+          "maxLength": "80",
+          "annotations": {
+            "description": "Meaning of the probation period unit."
+          }
+        },
+        {
+          "name": "ProbationEndDate",
+          "type": "date",
+          "updatable": true,
+          "mandatory": false,
+          "queryable": true,
+          "allowChanges": "always",
+          "title": "Probation End Date",
+          "includeInCompactView": true,
+          "annotations": {
+            "description": "End date of the probation period."
+          }
+        },
+        {
+          "name": "NoticePeriod",
+          "type": "integer",
+          "updatable": true,
+          "mandatory": false,
+          "queryable": true,
+          "allowChanges": "always",
+          "precision": 10,
+          "title": "Notice Period",
+          "includeInCompactView": true,
+          "annotations": {
+            "description": "Notice period for the assignment. Specify with the NoticePeriodUOM attribute."
+          }
+        },
+        {
+          "name": "NoticePeriodUOM",
+          "type": "string",
+          "updatable": true,
+          "mandatory": false,
+          "queryable": true,
+          "allowChanges": "always",
+          "precision": 30,
+          "title": "Notice Period Units",
+          "controlType": "choice",
+          "includeInCompactView": true,
+          "maxLength": "30",
+          "lov": {
+            "attributeMap": [
+              {
+                "source": "LookupCode",
+                "target": "NoticePeriodUOM"
+              }
+            ],
+            "displayAttributes": [
+              "Meaning"
+            ]
+          },
+          "annotations": {
+            "description": "Unit of measure for the notice period. Specify with the NoticePeriod attribute. Valid values are defined in the commonLookupsLOV."
+          }
+        },
+        {
+          "name": "NoticePeriodUOMMeaning",
+          "type": "string",
+          "updatable": false,
+          "mandatory": true,
+          "queryable": false,
+          "allowChanges": "never",
+          "precision": 80,
+          "title": "Meaning",
+          "maxLength": "80",
+          "annotations": {
+            "description": "Meaning of the notice period unit of measure."
+          }
+        },
+        {
+          "name": "WorkTaxAddressId",
+          "type": "integer",
+          "updatable": true,
+          "mandatory": false,
+          "queryable": false,
+          "allowChanges": "always",
+          "precision": 18,
+          "title": "Work Tax Address ID",
+          "includeInCompactView": true,
+          "annotations": {
+            "description": "Unique identifier for the address used for taxation purposes. This can be different from the mailing address."
+          }
+        },
+        {
+          "name": "ExpenseCheckSendToAddress",
+          "type": "string",
+          "updatable": true,
+          "mandatory": false,
+          "queryable": false,
+          "allowChanges": "always",
+          "precision": 30,
+          "title": "Expense Check Send-to Address",
+          "controlType": "choice",
+          "includeInCompactView": true,
+          "maxLength": "30",
+          "lov": {
+            "attributeMap": [
+              {
+                "source": "LookupCode",
+                "target": "ExpenseCheckSendToAddress"
+              }
+            ],
+            "displayAttributes": [
+              "Meaning"
+            ],
+            "lovResourcePath": [
+              {
+                "resource": "commonLookupsLOV",
+                "filter": "?finder=LookupTypeFinder%3BLookupType%3DPER_WORKER_ADDRESS_TYPE"
+              }
+            ]
+          },
+          "annotations": {
+            "description": "Determines whether expense checks are sent to the home or office address."
+          }
+        },
+        {
+          "name": "ExpenseCheckSendToAddressMeaning",
+          "type": "string",
+          "updatable": false,
+          "mandatory": true,
+          "queryable": false,
+          "allowChanges": "never",
+          "precision": 80,
+          "title": "Meaning",
+          "maxLength": "80",
+          "annotations": {
+            "description": "Meaning of the expense check address."
+          }
+        },
+        {
+          "name": "RetirementAge",
+          "type": "integer",
+          "updatable": true,
+          "mandatory": false,
+          "queryable": true,
+          "allowChanges": "always",
+          "precision": 18,
+          "title": "Retirement Age",
+          "includeInCompactView": true,
+          "annotations": {
+            "description": "Age at which the worker is retiring."
+          }
+        },
+        {
+          "name": "RetirementDate",
+          "type": "date",
+          "updatable": true,
+          "mandatory": false,
+          "queryable": true,
+          "allowChanges": "always",
+          "title": "Retirement Date",
+          "includeInCompactView": true,
+          "annotations": {
+            "description": "Planned retirement date of the worker."
+          }
+        },
+        {
+          "name": "LabourUnionMemberFlag",
+          "type": "boolean",
+          "updatable": true,
+          "mandatory": false,
+          "queryable": true,
+          "allowChanges": "always",
+          "precision": 30,
+          "title": "Union Member",
+          "includeInCompactView": true,
+          "maxLength": "30",
+          "annotations": {
+            "description": "Indicates whether the worker is a labor union member."
+          }
+        },
+        {
+          "name": "UnionId",
+          "type": "integer",
+          "updatable": true,
+          "mandatory": false,
+          "queryable": true,
+          "allowChanges": "always",
+          "precision": 18,
+          "title": "Union ID",
+          "includeInCompactView": true,
+          "annotations": {
+            "description": "Unique identifier of the worker union for the assignment."
+          }
+        },
+        {
+          "name": "UnionName",
+          "type": "string",
+          "updatable": true,
+          "mandatory": false,
+          "queryable": true,
+          "allowChanges": "always",
+          "precision": 240,
+          "title": "Union",
+          "controlType": "choice",
+          "includeInCompactView": true,
+          "maxLength": "240",
+          "properties": {
+            "DISPLAYWIDTH": "50"
+          },
+          "lov": {
+            "attributeMap": [
+              {
+                "source": "UnionName",
+                "target": "UnionName"
+              },
+              {
+                "source": "OrganizationId",
+                "target": "UnionId",
+                "derived": true
+              }
+            ],
+            "displayAttributes": [
+              "UnionName"
+            ],
+            "lovResourcePath": [
+              {
+                "resource": "unionsLov"
+              }
+            ],
+            "annotations": {
+              "title": "UnionName LOV",
+              "description": "The list of values for worker unions."
+            }
+          },
+          "annotations": {
+            "description": "Name of the worker union for the assignment. Valid values are defined in the unionsLov."
+          }
+        },
+        {
+          "name": "BargainingUnitCode",
+          "type": "string",
+          "updatable": true,
+          "mandatory": false,
+          "queryable": true,
+          "allowChanges": "always",
+          "precision": 30,
+          "title": "Bargaining Unit",
+          "controlType": "choice",
+          "includeInCompactView": true,
+          "maxLength": "30",
+          "lov": {
+            "attributeMap": [
+              {
+                "source": "BargainingUnitCode",
+                "target": "BargainingUnitCode"
+              }
+            ],
+            "displayAttributes": [
+              "BargainingUnitCode"
+            ],
+            "lovResourcePath": [
+              {
+                "resource": "bargainingUnitsLov"
+              }
+            ],
+            "annotations": {
+              "title": "BargainingUnitCode LOV",
+              "description": "The list of values for bargaining units."
+            }
+          },
+          "annotations": {
+            "description": "Code for the bargaining unit."
+          }
+        },
+        {
+          "name": "BargainingUnitMeaning",
+          "type": "string",
+          "updatable": false,
+          "mandatory": true,
+          "queryable": false,
+          "allowChanges": "never",
+          "precision": 80,
+          "title": "Meaning",
+          "maxLength": "80",
+          "annotations": {
+            "description": "Meaning of the bargaining unit."
+          }
+        },
+        {
+          "name": "CollectiveAgreementId",
+          "type": "integer",
+          "updatable": true,
+          "mandatory": false,
+          "queryable": true,
+          "allowChanges": "always",
+          "precision": 18,
+          "title": "Collective Agreement ID",
+          "includeInCompactView": true,
+          "annotations": {
+            "description": "Surrogate identifier for the collective agreement."
+          }
+        },
+        {
+          "name": "CollectiveAgreementName",
+          "type": "string",
+          "updatable": true,
+          "mandatory": false,
+          "queryable": true,
+          "allowChanges": "always",
+          "precision": 80,
+          "title": "Collective Agreement",
+          "controlType": "choice",
+          "includeInCompactView": true,
+          "maxLength": "80",
+          "lov": {
+            "attributeMap": [
+              {
+                "source": "CollectiveAgreementName",
+                "target": "CollectiveAgreementName"
+              },
+              {
+                "source": "CollectiveAgreementId",
+                "target": "CollectiveAgreementId",
+                "derived": true
+              }
+            ],
+            "displayAttributes": [
+              "CollectiveAgreementName"
+            ],
+            "lovResourcePath": [
+              {
+                "resource": "collectiveAgreementsLov"
+              }
+            ],
+            "annotations": {
+              "title": "CollectiveAgreementName LOV",
+              "description": "The list of values for collective agreements."
+            }
+          },
+          "annotations": {
+            "description": "Name for the collective agreement. Valid values are defined in the collectiveAgreementsLov."
+          }
+        },
+        {
+          "name": "ContractId",
+          "type": "integer",
+          "updatable": true,
+          "mandatory": false,
+          "queryable": true,
+          "allowChanges": "always",
+          "precision": 18,
+          "title": "Contract ID",
+          "includeInCompactView": true,
+          "annotations": {
+            "description": "Surrogate identifier for the contract."
+          }
+        },
+        {
+          "name": "ContractNumber",
+          "type": "string",
+          "updatable": true,
+          "mandatory": false,
+          "queryable": true,
+          "allowChanges": "always",
+          "precision": 30,
+          "title": "Contract Number",
+          "controlType": "choice",
+          "includeInCompactView": true,
+          "maxLength": "30",
+          "lov": {
+            "attributeMap": [
+              {
+                "source": "ContractNumber",
+                "target": "ContractNumber"
+              },
+              {
+                "source": "ContractId",
+                "target": "ContractId",
+                "derived": true
+              }
+            ],
+            "displayAttributes": [
+              "ContractNumber"
+            ],
+            "lovResourcePath": [
+              {
+                "resource": "hcmContractsLOV",
+                "filter": "?finder=findByPeriodOfServiceId"
+              }
+            ],
+            "annotations": {
+              "title": "ContractNumber LOV",
+              "description": "The list of values for contracts."
+            }
+          },
+          "annotations": {
+            "description": "Number of the contract."
+          }
+        },
+        {
+          "name": "InternalBuilding",
+          "type": "string",
+          "updatable": true,
+          "mandatory": false,
+          "queryable": false,
+          "allowChanges": "always",
+          "precision": 45,
+          "title": "Building",
+          "includeInCompactView": true,
+          "maxLength": "45",
+          "annotations": {
+            "description": "Building information associated with the work location."
+          }
+        },
+        {
+          "name": "InternalFloor",
+          "type": "string",
+          "updatable": true,
+          "mandatory": false,
+          "queryable": false,
+          "allowChanges": "always",
+          "precision": 45,
+          "title": "Floor",
+          "includeInCompactView": true,
+          "maxLength": "45",
+          "annotations": {
+            "description": "Floor information associated with the work location."
+          }
+        },
+        {
+          "name": "InternalOfficeNumber",
+          "type": "string",
+          "updatable": true,
+          "mandatory": false,
+          "queryable": false,
+          "allowChanges": "always",
+          "precision": 45,
+          "title": "Office Number",
+          "includeInCompactView": true,
+          "maxLength": "45",
+          "annotations": {
+            "description": "Office number associated with the work location."
+          }
+        },
+        {
+          "name": "InternalMailstop",
+          "type": "string",
+          "updatable": true,
+          "mandatory": false,
+          "queryable": false,
+          "allowChanges": "always",
+          "precision": 45,
+          "title": "Mail Stop",
+          "includeInCompactView": true,
+          "maxLength": "45",
+          "annotations": {
+            "description": "Internal mail location."
+          }
+        },
+        {
+          "name": "DefaultExpenseAccount",
+          "type": "string",
+          "updatable": true,
+          "mandatory": false,
+          "queryable": true,
+          "allowChanges": "always",
+          "includeInCompactView": true,
+          "properties": {
+            "FND_ACFF_ResourceLOVFinderContext": "oracle.apps.hcm.employment.core.restModel.view.AssignmentVO#defaultExpenseAccountsKFF",
+            "ojStructureInstanceNumber": "DfltCcidFlexNum"
+          },
+          "annotations": {
+            "description": "Default expense account of the assignment. If the expense account is configured with multiple segments, then provide the concatenated value. Separate the values using the separator configured for the expense account."
+          }
+        },
+        {
+          "name": "PeopleGroup",
+          "type": "string",
+          "updatable": true,
+          "mandatory": false,
+          "queryable": true,
+          "allowChanges": "always",
+          "includeInCompactView": true,
+          "properties": {
+            "FND_ACFF_ResourceLOVFinderContext": "oracle.apps.hcm.employment.core.restModel.view.AssignmentVO#peopleGroupsKFF",
+            "ojStructureInstanceNumber": "IdFlexNum"
+          },
+          "annotations": {
+            "description": "People Group Key flexfield for the assignment. If people group is configured with multiple segments, provide the concatenated value, separating the values with the separator configured for the People Group Key flexfield."
+          }
+        },
+        {
+          "name": "StandardWorkingHours",
+          "type": "number",
+          "updatable": true,
+          "mandatory": false,
+          "queryable": false,
+          "allowChanges": "always",
+          "includeInCompactView": true,
+          "annotations": {
+            "description": "Standard working hours such as 40."
+          }
+        },
+        {
+          "name": "StandardFrequency",
+          "type": "string",
+          "updatable": true,
+          "mandatory": false,
+          "queryable": false,
+          "allowChanges": "always",
+          "includeInCompactView": true,
+          "annotations": {
+            "description": "Frequency of standard working hours such as week or month."
+          }
+        },
+        {
+          "name": "AdjustedFTE",
+          "type": "number",
+          "updatable": true,
+          "mandatory": false,
+          "queryable": false,
+          "allowChanges": "always",
+          "precision": 30,
+          "scale": 10,
+          "title": "Adjusted FTE",
+          "annotations": {
+            "description": "Adjusted Full Time Equivalent for the worker assignment."
+          }
+        },
+        {
+          "name": "AnnualWorkingDuration",
+          "type": "number",
+          "updatable": true,
+          "mandatory": false,
+          "queryable": false,
+          "allowChanges": "always",
+          "precision": 8,
+          "scale": 4,
+          "title": "Annual Working Duration",
+          "annotations": {
+            "description": "Annual working duration for the worker assignment."
+          }
+        },
+        {
+          "name": "AnnualWorkingDurationUnits",
+          "type": "string",
+          "updatable": true,
+          "mandatory": false,
+          "queryable": false,
+          "allowChanges": "always",
+          "precision": 20,
+          "title": "Annual Working Duration Units",
+          "maxLength": "20",
+          "annotations": {
+            "description": "Description of the annual working duration units."
+          }
+        },
+        {
+          "name": "AnnualWorkingRatio",
+          "type": "number",
+          "updatable": true,
+          "mandatory": false,
+          "queryable": false,
+          "allowChanges": "always",
+          "precision": 8,
+          "scale": 5,
+          "title": "Annual Working Ratio",
+          "annotations": {
+            "description": "Annual working ratio for the worker assignment."
+          }
+        },
+        {
+          "name": "AssignmentStandardFrequency",
+          "type": "string",
+          "updatable": true,
+          "mandatory": false,
+          "queryable": false,
+          "allowChanges": "always",
+          "precision": 30,
+          "title": "Assignment Standard Working Hours Units",
+          "maxLength": "30",
+          "annotations": {
+            "description": "Standard frequency for the worker assignment."
+          }
+        },
+        {
+          "name": "AssignmentStandardWorkingHours",
+          "type": "number",
+          "updatable": true,
+          "mandatory": false,
+          "queryable": false,
+          "allowChanges": "always",
+          "precision": 22,
+          "scale": 3,
+          "title": "Assignment Standard Working Hours",
+          "annotations": {
+            "description": "Standard working hours for the worker assignment."
+          }
+        },
+        {
+          "name": "StandardAnnualWorkingDuration",
+          "type": "number",
+          "updatable": true,
+          "mandatory": false,
+          "queryable": false,
+          "allowChanges": "always",
+          "precision": 8,
+          "scale": 4,
+          "title": "Standard Annual Working Duration",
+          "annotations": {
+            "description": "Standard annual working duration for the worker assignment."
+          }
+        },
+        {
+          "name": "CreatedBy",
+          "type": "string",
+          "updatable": false,
+          "mandatory": true,
+          "queryable": false,
+          "allowChanges": "never",
+          "precision": 64,
+          "title": "Created By",
+          "includeInCompactView": true,
+          "maxLength": "64",
+          "annotations": {
+            "description": "User who created the assignment record."
+          }
+        },
+        {
+          "name": "CreationDate",
+          "type": "datetime",
+          "updatable": false,
+          "mandatory": true,
+          "queryable": false,
+          "allowChanges": "never",
+          "title": "Creation Date",
+          "includeInCompactView": true,
+          "annotations": {
+            "description": "Date and time when the assignment record was created."
+          }
+        },
+        {
+          "name": "LastUpdatedBy",
+          "type": "string",
+          "updatable": false,
+          "mandatory": true,
+          "queryable": false,
+          "allowChanges": "never",
+          "precision": 64,
+          "title": "Last Updated By",
+          "includeInCompactView": true,
+          "maxLength": "64",
+          "annotations": {
+            "description": "User who last updated the assignment record."
+          }
+        },
+        {
+          "name": "LastUpdateDate",
+          "type": "datetime",
+          "updatable": false,
+          "mandatory": true,
+          "queryable": false,
+          "allowChanges": "never",
+          "title": "Last Changed Date",
+          "includeInCompactView": true,
+          "annotations": {
+            "description": "Date and time when the assignment record was last updated."
+          }
+        }
+      ],
+      "item": {
+        "links": [
+          {
+            "rel": "child",
+            "href": "https://fa-euth-dev58-saasfademo1.ds-fa.oraclepdemos.com:443/hcmRestApi/resources/11.13.18.05/workers/00020000000EACED00057708000110D9364688A90000004AACED00057372000D6A6176612E73716C2E4461746514FA46683F3566970200007872000E6A6176612E7574696C2E44617465686A81014B597419030000787077080000019DF56F380078/child/workRelationships/300000081250483/child/assignments/00020000000EACED00057708000110D9364688B50000004AACED00057372000D6A6176612E73716C2E4461746514FA46683F3566970200007872000E6A6176612E7574696C2E44617465686A81014B597419030000787077080000019DF56F380078/child/allReports",
+            "name": "allReports",
+            "kind": "collection",
+            "cardinality": {
+              "value": "1 to *",
+              "sourceAttributes": "PersonId, AssignmentId",
+              "destinationAttributes": "ManagerDNId, ManagerAssignmentDNId"
+            }
+          },
+          {
+            "rel": "child",
+            "href": "https://fa-euth-dev58-saasfademo1.ds-fa.oraclepdemos.com:443/hcmRestApi/resources/11.13.18.05/workers/00020000000EACED00057708000110D9364688A90000004AACED00057372000D6A6176612E73716C2E4461746514FA46683F3566970200007872000E6A6176612E7574696C2E44617465686A81014B597419030000787077080000019DF56F380078/child/workRelationships/300000081250483/child/assignments/00020000000EACED00057708000110D9364688B50000004AACED00057372000D6A6176612E73716C2E4461746514FA46683F3566970200007872000E6A6176612E7574696C2E44617465686A81014B597419030000787077080000019DF56F380078/child/assignmentsDDF",
+            "name": "assignmentsDDF",
+            "kind": "collection",
+            "cardinality": {
+              "value": "1 to 1",
+              "sourceAttributes": "AssignmentId, EffectiveStartDate, EffectiveSequence, EffectiveLatestChange, EffectiveEndDate",
+              "destinationAttributes": "AssignmentId, EffectiveStartDate, EffectiveSequence, EffectiveLatestChange, EffectiveEndDate"
+            }
+          },
+          {
+            "rel": "child",
+            "href": "https://fa-euth-dev58-saasfademo1.ds-fa.oraclepdemos.com:443/hcmRestApi/resources/11.13.18.05/workers/00020000000EACED00057708000110D9364688A90000004AACED00057372000D6A6176612E73716C2E4461746514FA46683F3566970200007872000E6A6176612E7574696C2E44617465686A81014B597419030000787077080000019DF56F380078/child/workRelationships/300000081250483/child/assignments/00020000000EACED00057708000110D9364688B50000004AACED00057372000D6A6176612E73716C2E4461746514FA46683F3566970200007872000E6A6176612E7574696C2E44617465686A81014B597419030000787077080000019DF56F380078/child/assignmentsDFF",
+            "name": "assignmentsDFF",
+            "kind": "collection",
+            "cardinality": {
+              "value": "1 to 1",
+              "sourceAttributes": "AssignmentId, EffectiveStartDate, EffectiveSequence, EffectiveLatestChange, EffectiveEndDate",
+              "destinationAttributes": "AssignmentId, EffectiveStartDate, EffectiveSequence, EffectiveLatestChange, EffectiveEndDate"
+            }
+          },
+          {
+            "rel": "child",
+            "href": "https://fa-euth-dev58-saasfademo1.ds-fa.oraclepdemos.com:443/hcmRestApi/resources/11.13.18.05/workers/00020000000EACED00057708000110D9364688A90000004AACED00057372000D6A6176612E73716C2E4461746514FA46683F3566970200007872000E6A6176612E7574696C2E44617465686A81014B597419030000787077080000019DF56F380078/child/workRelationships/300000081250483/child/assignments/00020000000EACED00057708000110D9364688B50000004AACED00057372000D6A6176612E73716C2E4461746514FA46683F3566970200007872000E6A6176612E7574696C2E44617465686A81014B597419030000787077080000019DF56F380078/child/assignmentsEFF",
+            "name": "assignmentsEFF",
+            "kind": "collection",
+            "cardinality": {
+              "value": "1 to *",
+              "sourceAttributes": "AssignmentId, EffectiveStartDate, EffectiveEndDate, EffectiveSequence, EffectiveLatestChange, CategoryCode",
+              "destinationAttributes": "AssignmentId, EffectiveStartDate, EffectiveEndDate, EffectiveSequence, EffectiveLatestChange, CategoryCode"
+            }
+          },
+          {
+            "rel": "child",
+            "href": "https://fa-euth-dev58-saasfademo1.ds-fa.oraclepdemos.com:443/hcmRestApi/resources/11.13.18.05/workers/00020000000EACED00057708000110D9364688A90000004AACED00057372000D6A6176612E73716C2E4461746514FA46683F3566970200007872000E6A6176612E7574696C2E44617465686A81014B597419030000787077080000019DF56F380078/child/workRelationships/300000081250483/child/assignments/00020000000EACED00057708000110D9364688B50000004AACED00057372000D6A6176612E73716C2E4461746514FA46683F3566970200007872000E6A6176612E7574696C2E44617465686A81014B597419030000787077080000019DF56F380078/child/gradeSteps",
+            "name": "gradeSteps",
+            "kind": "collection",
+            "cardinality": {
+              "value": "1 to *",
+              "sourceAttributes": "AssignmentId",
+              "destinationAttributes": "AssignmentId"
+            }
+          },
+          {
+            "rel": "child",
+            "href": "https://fa-euth-dev58-saasfademo1.ds-fa.oraclepdemos.com:443/hcmRestApi/resources/11.13.18.05/workers/00020000000EACED00057708000110D9364688A90000004AACED00057372000D6A6176612E73716C2E4461746514FA46683F3566970200007872000E6A6176612E7574696C2E44617465686A81014B597419030000787077080000019DF56F380078/child/workRelationships/300000081250483/child/assignments/00020000000EACED00057708000110D9364688B50000004AACED00057372000D6A6176612E73716C2E4461746514FA46683F3566970200007872000E6A6176612E7574696C2E44617465686A81014B597419030000787077080000019DF56F380078/child/managers",
+            "name": "managers",
+            "kind": "collection",
+            "cardinality": {
+              "value": "1 to *",
+              "sourceAttributes": "AssignmentId",
+              "destinationAttributes": "AssignmentId"
+            }
+          },
+          {
+            "rel": "child",
+            "href": "https://fa-euth-dev58-saasfademo1.ds-fa.oraclepdemos.com:443/hcmRestApi/resources/11.13.18.05/workers/00020000000EACED00057708000110D9364688A90000004AACED00057372000D6A6176612E73716C2E4461746514FA46683F3566970200007872000E6A6176612E7574696C2E44617465686A81014B597419030000787077080000019DF56F380078/child/workRelationships/300000081250483/child/assignments/00020000000EACED00057708000110D9364688B50000004AACED00057372000D6A6176612E73716C2E4461746514FA46683F3566970200007872000E6A6176612E7574696C2E44617465686A81014B597419030000787077080000019DF56F380078/child/representatives",
+            "name": "representatives",
+            "kind": "collection",
+            "cardinality": {
+              "value": "1 to *",
+              "sourceAttributes": "PersonId, AssignmentId",
+              "destinationAttributes": "PersonId1, AssignmentId1"
+            }
+          },
+          {
+            "rel": "child",
+            "href": "https://fa-euth-dev58-saasfademo1.ds-fa.oraclepdemos.com:443/hcmRestApi/resources/11.13.18.05/workers/00020000000EACED00057708000110D9364688A90000004AACED00057372000D6A6176612E73716C2E4461746514FA46683F3566970200007872000E6A6176612E7574696C2E44617465686A81014B597419030000787077080000019DF56F380078/child/workRelationships/300000081250483/child/assignments/00020000000EACED00057708000110D9364688B50000004AACED00057372000D6A6176612E73716C2E4461746514FA46683F3566970200007872000E6A6176612E7574696C2E44617465686A81014B597419030000787077080000019DF56F380078/child/workMeasures",
+            "name": "workMeasures",
+            "kind": "collection",
+            "cardinality": {
+              "value": "1 to *",
+              "sourceAttributes": "AssignmentId",
+              "destinationAttributes": "AssignmentId"
+            }
+          },
+          {
+            "rel": "self",
+            "href": "https://fa-euth-dev58-saasfademo1.ds-fa.oraclepdemos.com:443/hcmRestApi/resources/11.13.18.05/workers/00020000000EACED00057708000110D9364688A90000004AACED00057372000D6A6176612E73716C2E4461746514FA46683F3566970200007872000E6A6176612E7574696C2E44617465686A81014B597419030000787077080000019DF56F380078/child/workRelationships/300000081250483/child/assignments/00020000000EACED00057708000110D9364688B50000004AACED00057372000D6A6176612E73716C2E4461746514FA46683F3566970200007872000E6A6176612E7574696C2E44617465686A81014B597419030000787077080000019DF56F380078",
+            "name": "self",
+            "kind": "item"
+          },
+          {
+            "rel": "parent",
+            "href": "https://fa-euth-dev58-saasfademo1.ds-fa.oraclepdemos.com:443/hcmRestApi/resources/11.13.18.05/workers/00020000000EACED00057708000110D9364688A90000004AACED00057372000D6A6176612E73716C2E4461746514FA46683F3566970200007872000E6A6176612E7574696C2E44617465686A81014B597419030000787077080000019DF56F380078/child/workRelationships/300000081250483",
+            "name": "parent",
+            "kind": "item"
+          },
+          {
+            "rel": "canonical",
+            "href": "https://fa-euth-dev58-saasfademo1.ds-fa.oraclepdemos.com:443/hcmRestApi/resources/11.13.18.05/workers/00020000000EACED00057708000110D9364688A90000004AACED00057372000D6A6176612E73716C2E4461746514FA46683F3566970200007872000E6A6176612E7574696C2E44617465686A81014B597419030000787077080000019DF56F380078/child/workRelationships/300000081250483/child/assignments/00020000000EACED00057708000110D9364688B50000004AACED00057372000D6A6176612E73716C2E4461746514FA46683F3566970200007872000E6A6176612E7574696C2E44617465686A81014B597419030000787077080000019DF56F380078",
+            "name": "canonical",
+            "kind": "item"
+          },
+          {
+            "rel": "action",
+            "href": "https://fa-euth-dev58-saasfademo1.ds-fa.oraclepdemos.com:443/hcmRestApi/resources/11.13.18.05/workers/00020000000EACED00057708000110D9364688A90000004AACED00057372000D6A6176612E73716C2E4461746514FA46683F3566970200007872000E6A6176612E7574696C2E44617465686A81014B597419030000787077080000019DF56F380078/child/workRelationships/300000081250483/child/assignments/00020000000EACED00057708000110D9364688B50000004AACED00057372000D6A6176612E73716C2E4461746514FA46683F3566970200007872000E6A6176612E7574696C2E44617465686A81014B597419030000787077080000019DF56F380078/action/endAssignment",
+            "name": "endAssignment",
+            "kind": "other"
+          }
+        ],
+        "actions": [
+          {
+            "name": "get",
+            "method": "GET",
+            "responseType": [
+              "application/vnd.oracle.adf.resourceitem+json",
+              "application/json"
+            ],
+            "annotations": {
+              "title": "Get a worker assignment"
+            }
+          },
+          {
+            "name": "get",
+            "method": "GET",
+            "responseType": [
+              "application/vnd.oracle.adf.resourceitem+json",
+              "application/json"
+            ]
+          },
+          {
+            "name": "update",
+            "method": "PATCH",
+            "requestType": [
+              "application/vnd.oracle.adf.resourceitem+json",
+              "application/json"
+            ],
+            "responseType": [
+              "application/vnd.oracle.adf.resourceitem+json",
+              "application/json"
+            ],
+            "annotations": {
+              "title": "Update a worker assignment"
+            }
+          },
+          {
+            "name": "update",
+            "method": "PATCH",
+            "requestType": [
+              "application/vnd.oracle.adf.resourceitem+json",
+              "application/json"
+            ],
+            "responseType": [
+              "application/vnd.oracle.adf.resourceitem+json",
+              "application/json"
+            ]
+          },
+          {
+            "name": "delete",
+            "method": "DELETE",
+            "annotations": {
+              "title": "Delete a worker assignment"
+            }
+          },
+          {
+            "name": "delete",
+            "method": "DELETE"
+          },
+          {
+            "name": "endAssignment",
+            "batchEnabled": false,
+            "parameters": [
+              {
+                "name": "effectiveDate",
+                "type": "date",
+                "mandatory": false
+              },
+              {
+                "name": "actionCode",
+                "type": "string",
+                "mandatory": false
+              },
+              {
+                "name": "reasonCode",
+                "type": "string",
+                "mandatory": false
+              }
+            ],
+            "resultType": "boolean",
+            "method": "POST",
+            "requestType": [
+              "application/vnd.oracle.adf.action+json"
+            ],
+            "responseType": [
+              "application/vnd.oracle.adf.actionresult+json",
+              "application/json"
+            ]
+          }
+        ]
+      },
+      "annotations": {
+        "description": "The assignments resource is a child of the workRelationships resource. It provides all the worker assignments as of the specified date. By default, the current date is retained."
+      },
+      "links": [
+        {
+          "rel": "self",
+          "href": "https://fa-euth-dev58-saasfademo1.ds-fa.oraclepdemos.com:443/hcmRestApi/resources/11.13.18.05/workers/00020000000EACED00057708000110D9364688A90000004AACED00057372000D6A6176612E73716C2E4461746514FA46683F3566970200007872000E6A6176612E7574696C2E44617465686A81014B597419030000787077080000019DF56F380078/child/workRelationships/300000081250483/child/assignments/00020000000EACED00057708000110D9364688B50000004AACED00057372000D6A6176612E73716C2E4461746514FA46683F3566970200007872000E6A6176612E7574696C2E44617465686A81014B597419030000787077080000019DF56F380078/describe",
+          "name": "self",
+          "kind": "describe"
+        },
+        {
+          "rel": "canonical",
+          "href": "https://fa-euth-dev58-saasfademo1.ds-fa.oraclepdemos.com:443/hcmRestApi/resources/11.13.18.05/workers/00020000000EACED00057708000110D9364688A90000004AACED00057372000D6A6176612E73716C2E4461746514FA46683F3566970200007872000E6A6176612E7574696C2E44617465686A81014B597419030000787077080000019DF56F380078/child/workRelationships/300000081250483/child/assignments/00020000000EACED00057708000110D9364688B50000004AACED00057372000D6A6176612E73716C2E4461746514FA46683F3566970200007872000E6A6176612E7574696C2E44617465686A81014B597419030000787077080000019DF56F380078/describe",
+          "name": "canonical",
+          "kind": "describe"
+        },
+        {
+          "rel": "lov",
+          "href": "https://fa-euth-dev58-saasfademo1.ds-fa.oraclepdemos.com:443/hcmRestApi/resources/11.13.18.05/actionsLOV",
+          "name": "actionsLOV",
+          "kind": "collection"
+        },
+        {
+          "rel": "lov",
+          "href": "https://fa-euth-dev58-saasfademo1.ds-fa.oraclepdemos.com:443/hcmRestApi/resources/11.13.18.05/actionReasonsLOV",
+          "name": "actionReasonsLOV",
+          "kind": "collection"
+        },
+        {
+          "rel": "lov",
+          "href": "https://fa-euth-dev58-saasfademo1.ds-fa.oraclepdemos.com:443/hcmRestApi/resources/11.13.0.0/hcmBusinessUnitsLOV",
+          "name": "hcmBusinessUnitsLOV",
+          "kind": "collection"
+        },
+        {
+          "rel": "lov",
+          "href": "https://fa-euth-dev58-saasfademo1.ds-fa.oraclepdemos.com:443/hcmRestApi/resources/11.13.0.0/assignmentStatusTypesLov",
+          "name": "assignmentStatusTypesLov",
+          "kind": "collection"
+        },
+        {
+          "rel": "lov",
+          "href": "https://fa-euth-dev58-saasfademo1.ds-fa.oraclepdemos.com:443/hcmRestApi/resources/11.13.18.05/personTypesLOV",
+          "name": "personTypesLOV",
+          "kind": "collection"
+        },
+        {
+          "rel": "lov",
+          "href": "https://fa-euth-dev58-saasfademo1.ds-fa.oraclepdemos.com:443/hcmRestApi/resources/11.13.0.0/positionsLov",
+          "name": "positionsLov",
+          "kind": "collection"
+        },
+        {
+          "rel": "lov",
+          "href": "https://fa-euth-dev58-saasfademo1.ds-fa.oraclepdemos.com:443/hcmRestApi/resources/11.13.0.0/jobsLov",
+          "name": "jobsLov",
+          "kind": "collection"
+        },
+        {
+          "rel": "lov",
+          "href": "https://fa-euth-dev58-saasfademo1.ds-fa.oraclepdemos.com:443/hcmRestApi/resources/11.13.0.0/gradesLov",
+          "name": "gradesLov",
+          "kind": "collection"
+        },
+        {
+          "rel": "lov",
+          "href": "https://fa-euth-dev58-saasfademo1.ds-fa.oraclepdemos.com:443/hcmRestApi/resources/11.13.0.0/gradeLaddersLov",
+          "name": "gradeLaddersLov",
+          "kind": "collection"
+        },
+        {
+          "rel": "lov",
+          "href": "https://fa-euth-dev58-saasfademo1.ds-fa.oraclepdemos.com:443/hcmRestApi/resources/11.13.0.0/departmentsLov",
+          "name": "departmentsLov",
+          "kind": "collection"
+        },
+        {
+          "rel": "lov",
+          "href": "https://fa-euth-dev58-saasfademo1.ds-fa.oraclepdemos.com:443/hcmRestApi/resources/11.13.18.05/reportingEstablishmentsLOV",
+          "name": "reportingEstablishmentsLOV",
+          "kind": "collection"
+        },
+        {
+          "rel": "lov",
+          "href": "https://fa-euth-dev58-saasfademo1.ds-fa.oraclepdemos.com:443/hcmRestApi/resources/11.13.0.0/locationsLov",
+          "name": "locationsLov",
+          "kind": "collection"
+        },
+        {
+          "rel": "lov",
+          "href": "https://fa-euth-dev58-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/commonLookupsLOV",
+          "name": "commonLookupsLOV",
+          "kind": "collection"
+        },
+        {
+          "rel": "lov",
+          "href": "https://fa-euth-dev58-saasfademo1.ds-fa.oraclepdemos.com:443/hcmRestApi/resources/11.13.0.0/unionsLov",
+          "name": "unionsLov",
+          "kind": "collection"
+        },
+        {
+          "rel": "lov",
+          "href": "https://fa-euth-dev58-saasfademo1.ds-fa.oraclepdemos.com:443/hcmRestApi/resources/11.13.0.0/bargainingUnitsLov",
+          "name": "bargainingUnitsLov",
+          "kind": "collection"
+        },
+        {
+          "rel": "lov",
+          "href": "https://fa-euth-dev58-saasfademo1.ds-fa.oraclepdemos.com:443/hcmRestApi/resources/11.13.0.0/collectiveAgreementsLov",
+          "name": "collectiveAgreementsLov",
+          "kind": "collection"
+        },
+        {
+          "rel": "lov",
+          "href": "https://fa-euth-dev58-saasfademo1.ds-fa.oraclepdemos.com:443/hcmRestApi/resources/11.13.18.05/hcmContractsLOV",
+          "name": "hcmContractsLOV",
+          "kind": "collection"
+        }
+      ]
+    }
+  }
+}

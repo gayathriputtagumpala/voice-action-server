@@ -300,7 +300,9 @@ app.get('/api/oracle/worker', async (req, res) => {
       BusinessUnitId: assignment?.BusinessUnitId,
       BusinessUnitName: workRel?.BusinessUnitName || assignment?.BusinessUnitName,
       LocationId: assignment?.LocationId || null,
-      LocationName: assignment?.LocationCode || 'Not Assigned'
+      LocationName: assignment?.LocationCode || 'Not Assigned',
+      JobId: assignment?.JobId || null,
+      JobName: assignment?.JobName || assignment?.JobCode || 'Not Assigned'
     });
   } catch (error) {
     console.error('Oracle Worker Error:', error.response?.data || error.message);
@@ -424,7 +426,7 @@ app.post('/api/oracle/assign', async (req, res) => {
     console.error('ASSIGN ERROR:', err.response?.status);
     console.error('ASSIGN ERROR DATA:', JSON.stringify(err.response?.data));
     res.status(err.response?.status || 500).json({ 
-      error: err.response?.data?.detail || err.response?.data?.title || err.message 
+      error: (err.response?.status === 403) ? "Oracle HCM Access Forbidden (403): The active Oracle account ('CRM.STUDENT07') does not have sufficient security roles/privileges to write to the supervisor/managers child resource. Please ensure the user has supervisor/manager write privileges (e.g. 'Use REST Service - Workers') in the Oracle Security Console, or provide a more privileged administrative account." : (err.response?.data?.detail || err.response?.data?.title || err.message) 
     });
   }
 });
@@ -619,6 +621,140 @@ app.patch('/api/oracle/location', async (req, res) => {
   } catch (err) {
     console.error('Location change error:', err.response?.status);
     console.error('Location error data:', JSON.stringify(err.response?.data));
+    res.status(500).json({
+      error: err.response?.data?.detail ||
+             err.response?.data?.title ||
+             JSON.stringify(err.response?.data) ||
+             err.message
+    });
+  }
+});
+
+app.get('/api/oracle/jobs', async (req, res) => {
+  let oracleAuth = req.headers['x-oracle-auth'];
+  if (!oracleAuth || oracleAuth === 'null' || oracleAuth === 'undefined') {
+    oracleAuth = process.env.ORACLE_AUTH;
+  }
+  let oracleBaseUrl = req.headers['x-oracle-url'];
+  if (!oracleBaseUrl || oracleBaseUrl === 'null' || oracleBaseUrl === 'undefined') {
+    oracleBaseUrl = process.env.ORACLE_BASE_URL;
+  }
+  try {
+    const https = require('https');
+    const agent = new https.Agent({ rejectUnauthorized: false });
+
+    const baseUrl = (oracleBaseUrl || process.env.ORACLE_BASE_URL).replace(/\/$/, '');
+    const url = `${baseUrl}/hcmRestApi/resources/11.13.18.05/jobs?limit=500&fields=JobId,JobCode,Name&onlyData=true`;
+
+    console.log('Fetching jobs from Oracle...');
+
+    const response = await axios.get(url, {
+      httpsAgent: agent,
+      headers: {
+        'Authorization': oracleAuth,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    console.log('Jobs count:', response.data.count);
+
+    const jobs = response.data.items
+      .filter(j => j.Name)
+      .map(j => ({
+        JobId: j.JobId,
+        JobCode: j.JobCode,
+        Name: j.Name
+      }));
+
+    res.json({ jobs });
+
+  } catch (err) {
+    console.error('Jobs error:', err.response?.status);
+    console.error('Jobs error data:', JSON.stringify(err.response?.data || err.message));
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.patch('/api/oracle/job', async (req, res) => {
+  let oracleAuth = req.headers['x-oracle-auth'];
+  if (!oracleAuth || oracleAuth === 'null' || oracleAuth === 'undefined') {
+    oracleAuth = process.env.ORACLE_AUTH;
+  }
+  let oracleBaseUrl = req.headers['x-oracle-url'];
+  if (!oracleBaseUrl || oracleBaseUrl === 'null' || oracleBaseUrl === 'undefined') {
+    oracleBaseUrl = process.env.ORACLE_BASE_URL;
+  }
+  try {
+    const {
+      encodedPersonId,
+      WorkRelationshipId,
+      encodedAssignmentId,
+      JobId,
+      JobName,
+      EffectiveDate
+    } = req.body;
+
+    const effectiveDate = EffectiveDate || '2025-05-01';
+
+    console.log('=== CHANGE JOB REQUEST ===');
+    console.log('JobId:', JobId);
+    console.log('JobName:', JobName);
+    console.log('EffectiveDate:', effectiveDate);
+
+    const baseUrl = (oracleBaseUrl || process.env.ORACLE_BASE_URL).replace(/\/$/, '');
+    const url = `${baseUrl}/hcmRestApi/resources/11.13.18.05/workers/${encodedPersonId}/child/workRelationships/${WorkRelationshipId}/child/assignments/${encodedAssignmentId}`;
+
+    console.log('PATCH URL:', url);
+
+    const https = require('https');
+    const agent = new https.Agent({ rejectUnauthorized: false });
+
+    const body = {
+      "ActionCode": "ASG_CHANGE",
+      "JobId": Number(JobId)
+    };
+
+    console.log('Request body:', JSON.stringify(body));
+
+    console.log('Attempting UPDATE mode for Job...');
+    try {
+      const response = await axios.patch(url, body, {
+        httpsAgent: agent,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': oracleAuth,
+          'Effective-Of': `RangeMode=UPDATE;RangeStartDate=${effectiveDate};RangeEndDate=4712-12-31`
+        }
+      });
+
+      console.log('UPDATE mode success for Job:', response.status);
+      res.json({
+        success: true,
+        message: `Job changed to ${JobName} successfully (UPDATE mode)`
+      });
+    } catch (updateErr) {
+      console.log('UPDATE mode failed for Job, trying CORRECTION mode...');
+      console.log('Update Job Error Details:', JSON.stringify(updateErr.response?.data || updateErr.message));
+
+      const corrResponse = await axios.patch(url, body, {
+        httpsAgent: agent,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': oracleAuth,
+          'Effective-Of': 'RangeMode=CORRECTION'
+        }
+      });
+
+      console.log('CORRECTION mode success for Job:', corrResponse.status);
+      res.json({
+        success: true,
+        message: `Job changed to ${JobName} successfully (CORRECTION mode)`
+      });
+    }
+
+  } catch (err) {
+    console.error('Job change error:', err.response?.status);
+    console.error('Job error data:', JSON.stringify(err.response?.data));
     res.status(500).json({
       error: err.response?.data?.detail ||
              err.response?.data?.title ||

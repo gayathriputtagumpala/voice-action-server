@@ -1,0 +1,524 @@
+{
+  "Resources": {
+    "managers": {
+      "discrColumnType": true,
+      "titlePlural": "Managers",
+      "ServiceConfiguration": {
+        "isCompactViewByDefault": true
+      },
+      "attributes": [
+        {
+          "name": "AssignmentSupervisorId",
+          "type": "integer",
+          "updatable": false,
+          "mandatory": true,
+          "queryable": false,
+          "allowChanges": "never",
+          "precision": 18,
+          "title": "Assignment Supervisor ID",
+          "includeInCompactView": true,
+          "annotations": {
+            "description": "Surrogate identifier for the supervisor of the worker assignment."
+          }
+        },
+        {
+          "name": "EffectiveStartDate",
+          "type": "date",
+          "updatable": true,
+          "mandatory": true,
+          "inputRequired": true,
+          "queryable": true,
+          "allowChanges": "always",
+          "title": "Effective Start Date",
+          "includeInCompactView": true,
+          "annotations": {
+            "description": "Start date of the date-effective changes to the record."
+          }
+        },
+        {
+          "name": "EffectiveEndDate",
+          "type": "date",
+          "updatable": true,
+          "mandatory": true,
+          "inputRequired": true,
+          "queryable": true,
+          "allowChanges": "always",
+          "title": "Effective End Date",
+          "includeInCompactView": true,
+          "annotations": {
+            "description": "End date of the date-effective changes to the record."
+          }
+        },
+        {
+          "name": "ManagerAssignmentId",
+          "type": "integer",
+          "updatable": true,
+          "mandatory": true,
+          "inputRequired": true,
+          "queryable": true,
+          "allowChanges": "always",
+          "precision": 18,
+          "title": "Assignment ID",
+          "includeInCompactView": true,
+          "annotations": {
+            "description": "Surrogate identifier for the assignment manager."
+          }
+        },
+        {
+          "name": "ManagerAssignmentNumber",
+          "type": "string",
+          "updatable": true,
+          "mandatory": false,
+          "queryable": true,
+          "allowChanges": "always",
+          "precision": 30,
+          "title": "Assignment Number",
+          "controlType": "choice",
+          "includeInCompactView": true,
+          "maxLength": "30",
+          "lov": {
+            "attributeMap": [
+              {
+                "source": "AssignmentNumber",
+                "target": "ManagerAssignmentNumber"
+              },
+              {
+                "source": "AssignmentId",
+                "target": "ManagerAssignmentId",
+                "derived": true
+              },
+              {
+                "source": "PersonId",
+                "target": "ManagerId",
+                "derived": true
+              }
+            ],
+            "displayAttributes": [
+              "AssignmentNumber",
+              "AssignmentId",
+              "PersonId"
+            ]
+          },
+          "annotations": {
+            "description": "Assignment number of the supervisor."
+          }
+        },
+        {
+          "name": "ManagerType",
+          "type": "string",
+          "updatable": true,
+          "mandatory": true,
+          "inputRequired": true,
+          "queryable": true,
+          "allowChanges": "always",
+          "precision": 30,
+          "title": "Type",
+          "controlType": "choice",
+          "includeInCompactView": true,
+          "maxLength": "30",
+          "lov": {
+            "attributeMap": [
+              {
+                "source": "LookupCode",
+                "target": "ManagerType"
+              }
+            ],
+            "displayAttributes": [
+              "Meaning"
+            ],
+            "lovResourcePath": [
+              {
+                "resource": "commonLookupsLOV",
+                "filter": "?finder=LegislationCodeFinder%3BLookupType%3DPER_SUPERVISOR_TYPE"
+              }
+            ]
+          },
+          "annotations": {
+            "description": "Role the supervisor has with regards to the overall organization structure such as functional, project leader, and so on. Valid values are defined in the commonLookupsLOV."
+          }
+        },
+        {
+          "name": "ManagerTypeMeaning",
+          "type": "string",
+          "updatable": false,
+          "mandatory": true,
+          "queryable": false,
+          "allowChanges": "never",
+          "precision": 80,
+          "title": "Meaning",
+          "maxLength": "80",
+          "annotations": {
+            "description": "Meaning for person's manager type."
+          }
+        },
+        {
+          "name": "ActionCode",
+          "type": "string",
+          "updatable": true,
+          "mandatory": false,
+          "queryable": false,
+          "allowChanges": "always",
+          "precision": 80,
+          "title": "Action Code",
+          "controlType": "choice",
+          "includeInCompactView": true,
+          "maxLength": "80",
+          "lov": {
+            "attributeMap": [
+              {
+                "source": "ActionCode",
+                "target": "ActionCode"
+              },
+              {
+                "source": "ActionId",
+                "target": "ActionId",
+                "derived": true
+              }
+            ],
+            "displayAttributes": [
+              "ActionName"
+            ],
+            "lovResourcePath": [
+              {
+                "resource": "actionsLOV"
+              }
+            ],
+            "annotations": {
+              "title": "ActionCode LOV",
+              "description": "The list of values for actions."
+            }
+          },
+          "annotations": {
+            "description": "Action being performed on the assignment such as Hire, Add Pending Worker, Manager Change and so on. Valid values are defined in the actionsLOV."
+          }
+        },
+        {
+          "name": "ReasonCode",
+          "type": "string",
+          "updatable": true,
+          "mandatory": false,
+          "queryable": false,
+          "allowChanges": "always",
+          "precision": 80,
+          "title": "Reason Code",
+          "controlType": "choice",
+          "includeInCompactView": true,
+          "maxLength": "80",
+          "lov": {
+            "attributeMap": [
+              {
+                "source": "ActionReasonCode",
+                "target": "ReasonCode"
+              },
+              {
+                "source": "ActionReasonId",
+                "target": "ReasonId",
+                "derived": true
+              }
+            ],
+            "displayAttributes": [
+              "ActionReason"
+            ],
+            "lovResourcePath": [
+              {
+                "resource": "actionReasonsLOV",
+                "filter": "?finder=findByActionId"
+              }
+            ],
+            "annotations": {
+              "title": "ReasonCode LOV",
+              "description": "The list of values for action reasons."
+            }
+          },
+          "annotations": {
+            "description": "Reason for the change. Valid values are defined in the actionReasonsLOV."
+          }
+        },
+        {
+          "name": "CreatedBy",
+          "type": "string",
+          "updatable": false,
+          "mandatory": true,
+          "queryable": false,
+          "allowChanges": "never",
+          "precision": 64,
+          "title": "Created By",
+          "includeInCompactView": true,
+          "maxLength": "64",
+          "annotations": {
+            "description": "User who created the supervisor record."
+          }
+        },
+        {
+          "name": "CreationDate",
+          "type": "datetime",
+          "updatable": false,
+          "mandatory": true,
+          "queryable": true,
+          "allowChanges": "never",
+          "title": "Creation Date",
+          "includeInCompactView": true,
+          "annotations": {
+            "description": "Date and time when the supervisor record was created."
+          }
+        },
+        {
+          "name": "LastUpdatedBy",
+          "type": "string",
+          "updatable": false,
+          "mandatory": true,
+          "queryable": false,
+          "allowChanges": "never",
+          "precision": 64,
+          "title": "Last Updated By",
+          "includeInCompactView": true,
+          "maxLength": "64",
+          "annotations": {
+            "description": "Date and time when the supervisor record was last updated."
+          }
+        },
+        {
+          "name": "LastUpdateDate",
+          "type": "datetime",
+          "updatable": false,
+          "mandatory": true,
+          "queryable": true,
+          "allowChanges": "never",
+          "title": "Last Changed Date",
+          "includeInCompactView": true,
+          "annotations": {
+            "description": "User who last updated the supervisor record."
+          }
+        }
+      ],
+      "collection": {
+        "rangeSize": 25,
+        "finders": [
+          {
+            "name": "PrimaryKey",
+            "annotations": {
+              "description": "Finds all the worker assignment managers that match the specified primary key criteria."
+            },
+            "attributes": [
+              {
+                "name": "AssignmentSupervisorId",
+                "type": "integer",
+                "updatable": true,
+                "mandatory": true,
+                "queryable": false,
+                "allowChanges": "never",
+                "precision": 18,
+                "title": "Assignment Supervisor ID",
+                "includeInCompactView": true,
+                "annotations": {
+                  "description": "Surrogate identifier for the supervisor on workers assignment."
+                }
+              },
+              {
+                "name": "EffectiveEndDate",
+                "type": "date",
+                "updatable": true,
+                "mandatory": true,
+                "inputRequired": true,
+                "queryable": true,
+                "allowChanges": "always",
+                "title": "Effective End Date",
+                "includeInCompactView": true,
+                "annotations": {
+                  "description": "End date of the date-effective changes to the record."
+                }
+              },
+              {
+                "name": "EffectiveStartDate",
+                "type": "date",
+                "updatable": true,
+                "mandatory": true,
+                "inputRequired": true,
+                "queryable": true,
+                "allowChanges": "always",
+                "title": "Effective Start Date",
+                "includeInCompactView": true,
+                "annotations": {
+                  "description": "Start date of the date-effective changes to the record."
+                }
+              }
+            ]
+          },
+          {
+            "name": "findByAssignmentSupervisorId",
+            "title": "findByAssignmentSupervisorId",
+            "annotations": {
+              "description": "Finds all the worker assignment managers that match the specified supervisor identifier criteria."
+            },
+            "attributes": [
+              {
+                "name": "AssignmentSupervisorId",
+                "type": "integer",
+                "updatable": true,
+                "required": "Required",
+                "queryable": false,
+                "allowChanges": "always",
+                "annotations": {
+                  "description": "Surrogate identifier for the supervisor on workers assignment."
+                }
+              },
+              {
+                "name": "SysEffectiveDate",
+                "type": "object",
+                "updatable": true,
+                "required": "Optional",
+                "queryable": false,
+                "allowChanges": "always",
+                "includeInCompactView": true,
+                "annotations": {
+                  "description": "Effective date of the query."
+                }
+              }
+            ]
+          }
+        ],
+        "links": [
+          {
+            "rel": "self",
+            "href": "https://fa-euth-dev58-saasfademo1.ds-fa.oraclepdemos.com:443/hcmRestApi/resources/11.13.18.05/workers/00020000000EACED00057708000110D9364688A90000004AACED00057372000D6A6176612E73716C2E4461746514FA46683F3566970200007872000E6A6176612E7574696C2E44617465686A81014B597419030000787077080000019DF56F380078/child/workRelationships/300000081250483/child/assignments/00020000000EACED00057708000110D9364688B50000004AACED00057372000D6A6176612E73716C2E4461746514FA46683F3566970200007872000E6A6176612E7574696C2E44617465686A81014B597419030000787077080000019DF56F380078/child/managers",
+            "name": "self",
+            "kind": "collection"
+          }
+        ],
+        "actions": [
+          {
+            "name": "get",
+            "method": "GET",
+            "responseType": [
+              "application/vnd.oracle.adf.resourcecollection+json",
+              "application/json"
+            ],
+            "annotations": {
+              "title": "Get all assignment managers"
+            }
+          },
+          {
+            "name": "create",
+            "method": "POST",
+            "requestType": [
+              "application/vnd.oracle.adf.resourceitem+json",
+              "application/json"
+            ],
+            "responseType": [
+              "application/vnd.oracle.adf.resourceitem+json",
+              "application/json"
+            ],
+            "annotations": {
+              "title": "Create an assignment manager"
+            }
+          },
+          {
+            "name": "upsert",
+            "method": "POST",
+            "header": "Upsert-Mode=true",
+            "requestType": [
+              "application/vnd.oracle.adf.resourceitem+json",
+              "application/json"
+            ],
+            "responseType": [
+              "application/vnd.oracle.adf.resourceitem+json",
+              "application/json"
+            ]
+          }
+        ]
+      },
+      "item": {
+        "links": [
+          {
+            "rel": "self",
+            "href": "https://fa-euth-dev58-saasfademo1.ds-fa.oraclepdemos.com:443/hcmRestApi/resources/11.13.18.05/workers/00020000000EACED00057708000110D9364688A90000004AACED00057372000D6A6176612E73716C2E4461746514FA46683F3566970200007872000E6A6176612E7574696C2E44617465686A81014B597419030000787077080000019DF56F380078/child/workRelationships/300000081250483/child/assignments/00020000000EACED00057708000110D9364688B50000004AACED00057372000D6A6176612E73716C2E4461746514FA46683F3566970200007872000E6A6176612E7574696C2E44617465686A81014B597419030000787077080000019DF56F380078/child/managers/{id}",
+            "name": "self",
+            "kind": "item"
+          },
+          {
+            "rel": "parent",
+            "href": "https://fa-euth-dev58-saasfademo1.ds-fa.oraclepdemos.com:443/hcmRestApi/resources/11.13.18.05/workers/00020000000EACED00057708000110D9364688A90000004AACED00057372000D6A6176612E73716C2E4461746514FA46683F3566970200007872000E6A6176612E7574696C2E44617465686A81014B597419030000787077080000019DF56F380078/child/workRelationships/300000081250483/child/assignments/00020000000EACED00057708000110D9364688B50000004AACED00057372000D6A6176612E73716C2E4461746514FA46683F3566970200007872000E6A6176612E7574696C2E44617465686A81014B597419030000787077080000019DF56F380078",
+            "name": "parent",
+            "kind": "item"
+          },
+          {
+            "rel": "canonical",
+            "href": "https://fa-euth-dev58-saasfademo1.ds-fa.oraclepdemos.com:443/hcmRestApi/resources/11.13.18.05/workers/00020000000EACED00057708000110D9364688A90000004AACED00057372000D6A6176612E73716C2E4461746514FA46683F3566970200007872000E6A6176612E7574696C2E44617465686A81014B597419030000787077080000019DF56F380078/child/workRelationships/300000081250483/child/assignments/00020000000EACED00057708000110D9364688B50000004AACED00057372000D6A6176612E73716C2E4461746514FA46683F3566970200007872000E6A6176612E7574696C2E44617465686A81014B597419030000787077080000019DF56F380078/child/managers/{id}",
+            "name": "canonical",
+            "kind": "item"
+          }
+        ],
+        "actions": [
+          {
+            "name": "get",
+            "method": "GET",
+            "responseType": [
+              "application/vnd.oracle.adf.resourceitem+json",
+              "application/json"
+            ],
+            "annotations": {
+              "title": "Get an assignment manager"
+            }
+          },
+          {
+            "name": "update",
+            "method": "PATCH",
+            "requestType": [
+              "application/vnd.oracle.adf.resourceitem+json",
+              "application/json"
+            ],
+            "responseType": [
+              "application/vnd.oracle.adf.resourceitem+json",
+              "application/json"
+            ],
+            "annotations": {
+              "title": "Update an assignment manager"
+            }
+          },
+          {
+            "name": "delete",
+            "method": "DELETE",
+            "annotations": {
+              "title": "Delete an assignment manager"
+            }
+          }
+        ]
+      },
+      "annotations": {
+        "description": "The managers resource is a child of the assignments resource. It provides all the assignment managers of a worker as of the specified date. By default, the current date is retained."
+      },
+      "links": [
+        {
+          "rel": "self",
+          "href": "https://fa-euth-dev58-saasfademo1.ds-fa.oraclepdemos.com:443/hcmRestApi/resources/11.13.18.05/workers/00020000000EACED00057708000110D9364688A90000004AACED00057372000D6A6176612E73716C2E4461746514FA46683F3566970200007872000E6A6176612E7574696C2E44617465686A81014B597419030000787077080000019DF56F380078/child/workRelationships/300000081250483/child/assignments/00020000000EACED00057708000110D9364688B50000004AACED00057372000D6A6176612E73716C2E4461746514FA46683F3566970200007872000E6A6176612E7574696C2E44617465686A81014B597419030000787077080000019DF56F380078/child/managers/describe",
+          "name": "self",
+          "kind": "describe"
+        },
+        {
+          "rel": "canonical",
+          "href": "https://fa-euth-dev58-saasfademo1.ds-fa.oraclepdemos.com:443/hcmRestApi/resources/11.13.18.05/workers/00020000000EACED00057708000110D9364688A90000004AACED00057372000D6A6176612E73716C2E4461746514FA46683F3566970200007872000E6A6176612E7574696C2E44617465686A81014B597419030000787077080000019DF56F380078/child/workRelationships/300000081250483/child/assignments/00020000000EACED00057708000110D9364688B50000004AACED00057372000D6A6176612E73716C2E4461746514FA46683F3566970200007872000E6A6176612E7574696C2E44617465686A81014B597419030000787077080000019DF56F380078/child/managers/describe",
+          "name": "canonical",
+          "kind": "describe"
+        },
+        {
+          "rel": "lov",
+          "href": "https://fa-euth-dev58-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/commonLookupsLOV",
+          "name": "commonLookupsLOV",
+          "kind": "collection"
+        },
+        {
+          "rel": "lov",
+          "href": "https://fa-euth-dev58-saasfademo1.ds-fa.oraclepdemos.com:443/hcmRestApi/resources/11.13.18.05/actionsLOV",
+          "name": "actionsLOV",
+          "kind": "collection"
+        },
+        {
+          "rel": "lov",
+          "href": "https://fa-euth-dev58-saasfademo1.ds-fa.oraclepdemos.com:443/hcmRestApi/resources/11.13.18.05/actionReasonsLOV",
+          "name": "actionReasonsLOV",
+          "kind": "collection"
+        }
+      ]
+    }
+  }
+}
