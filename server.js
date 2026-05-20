@@ -13,6 +13,10 @@ app.use(express.json());
 
 const upload = multer({ storage: multer.memoryStorage() });
 
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok' });
+});
+
 // Oracle SSO verification endpoint
 app.post('/api/auth/verify', async (req, res) => {
   try {
