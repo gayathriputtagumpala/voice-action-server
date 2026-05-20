@@ -338,21 +338,7 @@ app.get('/api/oracle/manager', async (req, res) => {
   }
   const manager_person_number = req.query.manager_person_number?.toString().trim();
   try {
-    const url = `${oracleBaseUrl || 'https://dabiqy.ds-fa.oraclepdemos.com'}/hcmRestApi/resources/11.13.18.05/workers?q=PersonNumber%3D${manager_person_number}&expand=workRelationships.assignments`;
-    
-    const https = require('https');
-    const agent = new https.Agent({ rejectUnauthorized: false });
-
-    const response = await axios.get(url, {
-      httpsAgent: agent,
-      headers: {
-        'Authorization': oracleAuth,
-        'Content-Type': 'application/json'
-      }
-  }
-  const manager_person_number = req.query.manager_person_number?.toString().trim();
-  try {
-    const url = `${oracleBaseUrl || 'https://dabiqy.ds-fa.oraclepdemos.com'}/hcmRestApi/resources/11.13.18.05/workers?q=PersonNumber%3D${manager_person_number}&expand=workRelationships.assignments`;
+    const url = `${oracleBaseUrl || 'https://fa-euth-dev58-saasfademo1.ds-fa.oraclepdemos.com'}/hcmRestApi/resources/11.13.18.05/workers?q=PersonNumber%3D${manager_person_number}&expand=workRelationships.assignments`;
     
     const https = require('https');
     const agent = new https.Agent({ rejectUnauthorized: false });
