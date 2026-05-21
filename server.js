@@ -214,7 +214,7 @@ app.get('/api/oracle/worker', async (req, res) => {
   const personNumber = req.query.person_number?.toString().trim();
   try {
     const baseUrl = (oracleBaseUrl || process.env.ORACLE_BASE_URL).replace(/\/$/, '');
-    const url = `${baseUrl}/hcmRestApi/resources/11.13.18.05/workers?q=PersonNumber%3D${personNumber}&expand=workRelationships.assignments`;
+    const url = `${baseUrl}/hcmRestApi/resources/11.13.18.05/workers?q=PersonNumber%3D${personNumber}&expand=workRelationships.assignments.managers`;
     const urlName = `${baseUrl}/hcmRestApi/resources/11.13.18.05/workers?q=PersonNumber%3D${personNumber}&fields=PersonNumber,DisplayName&onlyData=true`;
     
     console.log('1. Person number received:', personNumber);
@@ -517,8 +517,15 @@ app.post('/api/oracle/assign', async (req, res) => {
   } catch (err) {
     console.error('ASSIGN ERROR:', err.response?.status);
     console.error('ASSIGN ERROR DATA:', JSON.stringify(err.response?.data));
+    let activeUsername = 'your active account';
+    if (oracleAuth && oracleAuth.startsWith('Basic ')) {
+      try {
+        const decoded = Buffer.from(oracleAuth.substring(6), 'base64').toString('utf8');
+        activeUsername = decoded.split(':')[0];
+      } catch (e) {}
+    }
     res.status(err.response?.status || 500).json({ 
-      error: (err.response?.status === 403) ? "Oracle HCM Access Forbidden (403): The active Oracle account ('CRM.STUDENT07') does not have sufficient security roles/privileges to write to the supervisor/managers child resource. Please ensure the user has supervisor/manager write privileges (e.g. 'Use REST Service - Workers') in the Oracle Security Console, or provide a more privileged administrative account." : (err.response?.data?.detail || err.response?.data?.title || err.message) 
+      error: (err.response?.status === 403) ? `Oracle HCM Access Forbidden (403): The active Oracle account ('${activeUsername}') does not have sufficient security roles/privileges to write to the supervisor/managers child resource. Please ensure the user has supervisor/manager write privileges (e.g. 'Use REST Service - Workers') in the Oracle Security Console, or provide a more privileged administrative account.` : (err.response?.data?.detail || err.response?.data?.title || err.message) 
     });
   }
 });
