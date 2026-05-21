@@ -42,9 +42,9 @@ app.post('/api/auth/verify', async (req, res) => {
     const https = require('https');
     const agent = new https.Agent({ rejectUnauthorized: false });
     
-    // Verify by calling Oracle API
+    // Verify by calling Oracle API root catalog (accessible to all authenticated users)
     const response = await axios.get(
-      `${cleanUrl}/hcmRestApi/resources/11.13.18.05/workers?limit=1&fields=PersonId`,
+      `${cleanUrl}/hcmRestApi/resources/11.13.18.05/`,
       {
         httpsAgent: agent,
         headers: {
@@ -55,7 +55,7 @@ app.post('/api/auth/verify', async (req, res) => {
       }
     );
     
-    if (response.status === 200) {
+    if (response.status === 200 || response.status === 201) {
       console.log('Oracle credentials verified successfully');
       
       // Return success with auth token
@@ -75,6 +75,16 @@ app.post('/api/auth/verify', async (req, res) => {
     if (err.response?.status === 401) {
       res.status(401).json({ 
         error: 'Invalid Oracle username or password' 
+      });
+    } else if (err.response?.status === 403) {
+      // 403 Forbidden means credentials are correct, but the user lacks permissions to some catalog components.
+      console.log('Oracle credentials verified (403 Forbidden - credentials correct, bypassing permissions check)');
+      res.json({
+        success: true,
+        authToken: authHeader,
+        oracleUrl: cleanUrl,
+        username: username,
+        message: 'Login successful'
       });
     } else if (err.response?.status === 503) {
       res.status(503).json({ 
