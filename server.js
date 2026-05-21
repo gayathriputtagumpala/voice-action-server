@@ -1063,7 +1063,7 @@ app.get('/api/oracle/grades', async (req, res) => {
     const agent = new https.Agent({ rejectUnauthorized: false });
 
     const baseUrl = (oracleBaseUrl || process.env.ORACLE_BASE_URL).replace(/\/$/, '');
-    const url = `${baseUrl}/hcmRestApi/resources/11.13.18.05/grades?limit=500&fields=GradeId,GradeCode,Name&onlyData=true`;
+    const url = `${baseUrl}/hcmRestApi/resources/11.13.18.05/grades?limit=500&fields=GradeId,GradeCode,GradeName&onlyData=true`;
 
     console.log('Fetching grades from Oracle...');
 
@@ -1078,11 +1078,11 @@ app.get('/api/oracle/grades', async (req, res) => {
     console.log('Grades count:', response.data.count);
 
     const grades = (response.data.items || [])
-      .filter(g => g.Name)
+      .filter(g => g.GradeName)
       .map(g => ({
         GradeId: g.GradeId,
         GradeCode: g.GradeCode,
-        Name: g.Name
+        Name: g.GradeName
       }));
 
     res.json({ grades });

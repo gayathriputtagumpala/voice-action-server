@@ -3,8 +3,8 @@ const https = require('https');
 require('dotenv').config();
 
 async function run() {
-  const baseUrl = process.env.ORACLE_BASE_URL || 'https://fa-euth-dev58-saasfademo1.ds-fa.oraclepdemos.com';
-  const oracleAuth = process.env.ORACLE_AUTH || 'Basic Q1JNLlNUVURFTlQwNzpmdXNpb24xMiM=';
+  const baseUrl = 'https://fa-euth-dev58-saasfademo1.ds-fa.oraclepdemos.com';
+  const oracleAuth = 'Basic Q1JNLlNUVURFTlQwNzpmdXNpb24xMiM=';
   const agent = new https.Agent({ rejectUnauthorized: false });
 
   // Query Person 10 first
