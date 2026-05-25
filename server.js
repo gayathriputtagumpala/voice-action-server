@@ -1197,10 +1197,14 @@ app.post('/api/oracle/hire', async (req, res) => {
       LocationCode
     } = req.body;
 
-    const oracleAuth = req.headers['x-oracle-auth'] ||
-      process.env.ORACLE_AUTH;
-    const oracleBaseUrl = req.headers['x-oracle-url'] ||
-      process.env.ORACLE_BASE_URL;
+    let oracleAuth = req.headers['x-oracle-auth'];
+    if (!oracleAuth || oracleAuth === 'null' || oracleAuth === 'undefined') {
+      oracleAuth = process.env.ORACLE_AUTH;
+    }
+    let oracleBaseUrl = req.headers['x-oracle-url'];
+    if (!oracleBaseUrl || oracleBaseUrl === 'null' || oracleBaseUrl === 'undefined') {
+      oracleBaseUrl = process.env.ORACLE_BASE_URL;
+    }
 
     console.log('=== HIRE EMPLOYEE REQUEST ===');
     console.log('PersonNumber:', PersonNumber);
@@ -1283,10 +1287,14 @@ app.post('/api/oracle/hire', async (req, res) => {
 
 app.get('/api/oracle/legalemployers', async (req, res) => {
   try {
-    const oracleAuth = req.headers['x-oracle-auth'] ||
-      process.env.ORACLE_AUTH;
-    const oracleBaseUrl = req.headers['x-oracle-url'] ||
-      process.env.ORACLE_BASE_URL;
+    let oracleAuth = req.headers['x-oracle-auth'];
+    if (!oracleAuth || oracleAuth === 'null' || oracleAuth === 'undefined') {
+      oracleAuth = process.env.ORACLE_AUTH;
+    }
+    let oracleBaseUrl = req.headers['x-oracle-url'];
+    if (!oracleBaseUrl || oracleBaseUrl === 'null' || oracleBaseUrl === 'undefined') {
+      oracleBaseUrl = process.env.ORACLE_BASE_URL;
+    }
 
     const https = require('https');
     const agent = new https.Agent({ rejectUnauthorized: false });
@@ -1317,10 +1325,14 @@ app.get('/api/oracle/legalemployers', async (req, res) => {
 
 app.get('/api/oracle/businessunits', async (req, res) => {
   try {
-    const oracleAuth = req.headers['x-oracle-auth'] ||
-      process.env.ORACLE_AUTH;
-    const oracleBaseUrl = req.headers['x-oracle-url'] ||
-      process.env.ORACLE_BASE_URL;
+    let oracleAuth = req.headers['x-oracle-auth'];
+    if (!oracleAuth || oracleAuth === 'null' || oracleAuth === 'undefined') {
+      oracleAuth = process.env.ORACLE_AUTH;
+    }
+    let oracleBaseUrl = req.headers['x-oracle-url'];
+    if (!oracleBaseUrl || oracleBaseUrl === 'null' || oracleBaseUrl === 'undefined') {
+      oracleBaseUrl = process.env.ORACLE_BASE_URL;
+    }
 
     const https = require('https');
     const agent = new https.Agent({ rejectUnauthorized: false });
