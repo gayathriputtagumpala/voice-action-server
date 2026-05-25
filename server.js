@@ -1183,6 +1183,172 @@ app.patch('/api/oracle/grade', async (req, res) => {
   }
 });
 
+app.post('/api/oracle/hire', async (req, res) => {
+  try {
+    const {
+      PersonNumber,
+      FirstName,
+      LastName,
+      DateOfBirth,
+      LegalEmployerName,
+      StartDate,
+      BusinessUnitName,
+      JobCode,
+      LocationCode
+    } = req.body;
+
+    const oracleAuth = req.headers['x-oracle-auth'] ||
+      process.env.ORACLE_AUTH;
+    const oracleBaseUrl = req.headers['x-oracle-url'] ||
+      process.env.ORACLE_BASE_URL;
+
+    console.log('=== HIRE EMPLOYEE REQUEST ===');
+    console.log('PersonNumber:', PersonNumber);
+    console.log('Name:', FirstName, LastName);
+    console.log('StartDate:', StartDate);
+    console.log('LegalEmployer:', LegalEmployerName);
+    console.log('BusinessUnit:', BusinessUnitName);
+    console.log('JobCode:', JobCode);
+    console.log('LocationCode:', LocationCode);
+
+    const https = require('https');
+    const agent = new https.Agent({ rejectUnauthorized: false });
+
+    const today = StartDate || 
+      new Date().toISOString().split('T')[0];
+
+    const url = `${oracleBaseUrl}/hcmRestApi/resources/latest/workers`;
+
+    const body = {
+      "PersonNumber": PersonNumber,
+      "names": [
+        {
+          "LegislationCode": "US",
+          "FirstName": FirstName,
+          "LastName": LastName
+        }
+      ],
+      "DateOfBirth": DateOfBirth || null,
+      "workRelationships": [
+        {
+          "LegalEmployerName": LegalEmployerName,
+          "WorkerType": "E",
+          "PrimaryFlag": true,
+          "StartDate": today,
+          "assignments": [
+            {
+              "ActionCode": "HIRE",
+              "BusinessUnitName": BusinessUnitName,
+              "AssignmentStatusTypeCode": "ACTIVE_PROCESS",
+              "JobCode": JobCode || null,
+              "LocationCode": LocationCode || null
+            }
+          ]
+        }
+      ]
+    };
+
+    console.log('Hire body:', JSON.stringify(body, null, 2));
+
+    const response = await axios.post(url, body, {
+      httpsAgent: agent,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': oracleAuth,
+        'Effective-Of': `RangeStartDate=${today};RangeEndDate=4712-12-31`
+      }
+    });
+
+    console.log('Hire success:', response.status);
+    console.log('Hire response:', JSON.stringify(response.data));
+
+    res.json({
+      success: true,
+      message: `Employee ${FirstName} ${LastName} hired successfully!`,
+      PersonNumber: response.data.PersonNumber,
+      data: response.data
+    });
+
+  } catch (err) {
+    console.error('Hire error status:', err.response?.status);
+    console.error('Hire error:', JSON.stringify(err.response?.data));
+    res.status(500).json({
+      error: err.response?.data?.detail ||
+             err.response?.data?.title ||
+             JSON.stringify(err.response?.data) ||
+             err.message
+    });
+  }
+});
+
+app.get('/api/oracle/legalemployers', async (req, res) => {
+  try {
+    const oracleAuth = req.headers['x-oracle-auth'] ||
+      process.env.ORACLE_AUTH;
+    const oracleBaseUrl = req.headers['x-oracle-url'] ||
+      process.env.ORACLE_BASE_URL;
+
+    const https = require('https');
+    const agent = new https.Agent({ rejectUnauthorized: false });
+
+    const baseUrl = oracleBaseUrl.replace(/\/$/, '');
+    const url = `${baseUrl}/hcmRestApi/resources/11.13.18.05/legalEmployersLov?limit=50&fields=OrganizationId,Name&onlyData=true`;
+
+    const response = await axios.get(url, {
+      httpsAgent: agent,
+      headers: {
+        'Authorization': oracleAuth,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    const employers = response.data.items.map(e => ({
+      LegalEntityId: e.OrganizationId,
+      Name: e.Name
+    }));
+
+    res.json({ employers });
+
+  } catch (err) {
+    console.error('Legal employers error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/oracle/businessunits', async (req, res) => {
+  try {
+    const oracleAuth = req.headers['x-oracle-auth'] ||
+      process.env.ORACLE_AUTH;
+    const oracleBaseUrl = req.headers['x-oracle-url'] ||
+      process.env.ORACLE_BASE_URL;
+
+    const https = require('https');
+    const agent = new https.Agent({ rejectUnauthorized: false });
+
+    const baseUrl = oracleBaseUrl.replace(/\/$/, '');
+    const url = `${baseUrl}/hcmRestApi/resources/11.13.18.05/hcmBusinessUnitsLOV?limit=50&fields=BusinessUnitId,BusinessUnitName&onlyData=true`;
+
+    const response = await axios.get(url, {
+      httpsAgent: agent,
+      headers: {
+        'Authorization': oracleAuth,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    const units = response.data.items.map(u => ({
+      BusinessUnitId: u.BusinessUnitId,
+      BusinessUnitName: u.BusinessUnitName
+    }));
+
+    res.json({ units });
+
+  } catch (err) {
+    console.error('Business units error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.listen(port, () => {
   console.log(`Voice Action Server listening at http://localhost:${port}`);
 });
