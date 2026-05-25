@@ -1338,7 +1338,7 @@ app.get('/api/oracle/businessunits', async (req, res) => {
     const agent = new https.Agent({ rejectUnauthorized: false });
 
     const baseUrl = oracleBaseUrl.replace(/\/$/, '');
-    const url = `${baseUrl}/hcmRestApi/resources/11.13.18.05/hcmBusinessUnitsLOV?limit=50&fields=BusinessUnitId,BusinessUnitName&onlyData=true`;
+    const url = `${baseUrl}/hcmRestApi/resources/11.13.18.05/hcmBusinessUnitsLOV?limit=50&fields=BusinessUnitId,Name&onlyData=true`;
 
     const response = await axios.get(url, {
       httpsAgent: agent,
@@ -1350,7 +1350,7 @@ app.get('/api/oracle/businessunits', async (req, res) => {
 
     const units = response.data.items.map(u => ({
       BusinessUnitId: u.BusinessUnitId,
-      BusinessUnitName: u.BusinessUnitName
+      BusinessUnitName: u.Name
     }));
 
     res.json({ units });
