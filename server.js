@@ -1509,6 +1509,9 @@ async function handleWhatsAppText(from, text) {
         `6️⃣ **Change Grade:**\n` +
         `"change grade for employee [number] to [grade_name]"\n` +
         `Example: change grade for employee 1405 to Grade 4\n\n` +
+        `7️⃣ **Hire Employee:**\n` +
+        `"hire employee [FirstName] [LastName] with person [PersonNumber], legal employer [EmployerName], business unit [BU_Name], job [JobCode], location [LocationCode]"\n` +
+        `Example: hire employee John Doe with person 9988, legal employer US1 Legal Entity, business unit US1 Business Unit, job JOB018, location US East\n\n` +
         `Or send a voice note in English! 🎙️`
       );
       return;
@@ -1517,8 +1520,59 @@ async function handleWhatsAppText(from, text) {
     // Extract all numbers from message
     const numbers = text.match(/\d{3,6}/g) || [];
     
+    // HIRE EMPLOYEE
+    if (lower.includes('hire') && lower.includes('employee')) {
+      const nameMatch = text.match(/hire\s+employee\s+([A-Za-z]+)\s+([A-Za-z]+)/i);
+      const firstName = nameMatch ? nameMatch[1] : null;
+      const lastName = nameMatch ? nameMatch[2] : null;
+
+      const personMatch = text.match(/(?:person|number|no|id)\s*(\d{3,6})/i);
+      const personNumber = personMatch ? personMatch[1] : (numbers.length > 0 ? numbers[0] : null);
+
+      const legalMatch = text.match(/(?:legal\s*employer|employer)\s*([^,;]+)/i);
+      const legalEmployerName = legalMatch ? legalMatch[1].trim() : null;
+
+      const buMatch = text.match(/(?:business\s*unit|bu)\s*([^,;]+)/i);
+      const businessUnitName = buMatch ? buMatch[1].trim() : null;
+
+      const jobMatch = text.match(/(?:job|job\s*code)\s*([^,;]+)/i);
+      const jobCode = jobMatch ? jobMatch[1].trim() : null;
+
+      const locMatch = text.match(/(?:location|loc)\s*([^,;]+)/i);
+      const locationCode = locMatch ? locMatch[1].trim() : null;
+
+      if (firstName && lastName && personNumber && legalEmployerName && businessUnitName) {
+        await sendWhatsAppMessage(from,
+          `⏳ Processing...\n` +
+          `Hiring new employee ${firstName} ${lastName} (Person: ${personNumber}) under Business Unit: ${businessUnitName}...`
+        );
+        await processHireEmployee(from, {
+          PersonNumber: personNumber,
+          FirstName: firstName,
+          LastName: lastName,
+          LegalEmployerName: legalEmployerName,
+          BusinessUnitName: businessUnitName,
+          JobCode: jobCode,
+          LocationCode: locationCode
+        });
+      } else {
+        let missing = [];
+        if (!firstName || !lastName) missing.push("Employee First/Last Name");
+        if (!personNumber) missing.push("Person Number");
+        if (!legalEmployerName) missing.push("Legal Employer Name");
+        if (!businessUnitName) missing.push("Business Unit Name");
+
+        await sendWhatsAppMessage(from,
+          `❌ Missing details for hiring: ${missing.join(', ')}.\n\n` +
+          `Please use the format:\n` +
+          `"hire employee [FirstName] [LastName] with person [PersonNumber], legal employer [EmployerName], business unit [BU_Name], job [JobCode], location [LocationCode]"\n\n` +
+          `Example:\n` +
+          `hire employee John Doe with person 9988, legal employer US1 Legal Entity, business unit US1 Business Unit, job JOB018, location US East`
+        );
+      }
+      
     // ASSIGN MANAGER
-    if (lower.includes('assign') && lower.includes('manager')) {
+    } else if (lower.includes('assign') && lower.includes('manager')) {
       if (numbers.length >= 2) {
         const employeeNum = numbers[numbers.length - 1];
         const managerNum = numbers[0];
@@ -2368,6 +2422,75 @@ async function processChangeGrade(from, employeeNum, gradeName) {
   } catch (err) {
     const errorDetail = err.response?.data?.detail || err.response?.data?.title || err.message;
     await sendWhatsAppMessage(from, `❌ Failed to change grade.\nError: ${errorDetail}`);
+  }
+}
+
+// ─── PROCESS HIRE EMPLOYEE ────────────────────────────
+async function processHireEmployee(from, details) {
+  try {
+    const https = require('https');
+    const agent = new https.Agent({ rejectUnauthorized: false });
+    const baseUrl = (process.env.ORACLE_BASE_URL || 'https://fa-eubg-test-saasfademo1.ds-fa.oraclepdemos.com').replace(/\/$/, '');
+    const auth = process.env.ORACLE_AUTH || 'Basic dXNlcl9yMTNfYTJmOkQ/Nj82dXVD';
+
+    const today = new Date().toISOString().split('T')[0];
+    const url = `${baseUrl}/hcmRestApi/resources/latest/workers`;
+
+    const body = {
+      "PersonNumber": details.PersonNumber,
+      "names": [
+        {
+          "LegislationCode": "US",
+          "FirstName": details.FirstName,
+          "LastName": details.LastName
+        }
+      ],
+      "workRelationships": [
+        {
+          "LegalEmployerName": details.LegalEmployerName,
+          "WorkerType": "E",
+          "PrimaryFlag": true,
+          "StartDate": today,
+          "assignments": [
+            {
+              "ActionCode": "HIRE",
+              "BusinessUnitName": details.BusinessUnitName,
+              "AssignmentStatusTypeCode": "ACTIVE_PROCESS",
+              "JobCode": details.JobCode || null,
+              "LocationCode": details.LocationCode || null
+            }
+          ]
+        }
+      ]
+    };
+
+    console.log('[WhatsApp] Submitting worker hire payload:', JSON.stringify(body));
+
+    const response = await axios.post(url, body, {
+      httpsAgent: agent,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': auth,
+        'Effective-Of': `RangeStartDate=${today};RangeEndDate=4712-12-31`
+      }
+    });
+
+    console.log('[WhatsApp] Worker hire succeeded:', response.status);
+
+    await sendWhatsAppMessage(from,
+      `✅ Success!\n\n` +
+      `Employee *${details.FirstName} ${details.LastName}* (Person Number: *${details.PersonNumber}*) has been hired successfully in Oracle Fusion HCM! 🎉`
+    );
+
+  } catch (error) {
+    const status = error.response?.status || 500;
+    const errorDetail = error.response?.data?.detail || error.response?.data?.title || error.message;
+    console.error(`[WhatsApp] Hire Employee Error [${status}]:`, JSON.stringify(error.response?.data || error.message));
+
+    await sendWhatsAppMessage(from,
+      `❌ Failed to hire employee.\n\n` +
+      `*Error details:* ${errorDetail}`
+    );
   }
 }
 
