@@ -449,7 +449,15 @@ app.get('/api/oracle/worker', async (req, res) => {
       PositionId: assignment?.PositionId || null,
       PositionName: positionName,
       GradeId: assignment?.GradeId || null,
-      GradeName: gradeName
+      GradeName: gradeName,
+      LegalEmployerName: workRel?.LegalEmployerName || workRel?.LegalEntityName || 'Not Assigned',
+      UserPersonType: assignment?.UserPersonType || 'Employee',
+      AssignmentStatusType: assignment?.AssignmentStatusType || 'ACTIVE',
+      StartDate: workRel?.StartDate || assignment?.EffectiveStartDate || 'Not Assigned',
+      NormalHours: assignment?.NormalHours ? `${assignment.NormalHours} ${assignment.Frequency === 'W' ? 'Hours/Week' : assignment.Frequency || ''}`.trim() : 'Not Assigned',
+      ActionCode: assignment?.ActionCode || 'Not Assigned',
+      CreationDate: worker.CreationDate ? new Date(worker.CreationDate).toLocaleDateString() : 'Not Assigned',
+      LastUpdateDate: worker.LastUpdateDate ? new Date(worker.LastUpdateDate).toLocaleDateString() : 'Not Assigned'
     });
   } catch (error) {
     console.error('Oracle Worker Error:', error.response?.data || error.message);
@@ -2693,12 +2701,25 @@ async function processGetEmployeeDetails(from, personNumber) {
       }
     }
 
+    const legalEmployer = workRel?.LegalEmployerName || workRel?.LegalEntityName || 'Not Assigned';
+    const businessUnit = workRel?.BusinessUnitName || assignment?.BusinessUnitName || 'Not Assigned';
+    const asgNo = assignment?.AssignmentNumber || 'Not Assigned';
+    const workerType = assignment?.UserPersonType || 'Employee';
+    const status = assignment?.AssignmentStatusType || 'ACTIVE';
+    const startDate = workRel?.StartDate || assignment?.EffectiveStartDate || 'Not Assigned';
+
     // Format response
     const msg = `👤 *Employee Details Profile*:\n\n` +
                 `🏷️ *Name:* ${displayName}\n` +
                 `🔢 *Person Number:* ${personNumber}\n` +
+                `🆔 *Assignment Number:* ${asgNo}\n` +
+                `👥 *Worker Type:* ${workerType}\n` +
+                `📊 *Status:* ${status}\n` +
+                `📅 *Start Date:* ${startDate}\n` +
                 `🏢 *Department:* ${currentDept}\n` +
-                `💼 *Job:* ${jobName}\n` +
+                `🏛️ *Legal Employer:* ${legalEmployer}\n` +
+                `🌍 *Business Unit:* ${businessUnit}\n` +
+                `💼 *Job Role:* ${jobName}\n` +
                 `📍 *Location:* ${locationName}\n` +
                 `🎖️ *Position:* ${positionName}\n` +
                 `🏅 *Grade:* ${gradeName}\n` +
