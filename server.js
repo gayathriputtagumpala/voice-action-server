@@ -1414,7 +1414,7 @@ app.get('/api/oracle/legalemployers', async (req, res) => {
     const agent = new https.Agent({ rejectUnauthorized: false });
 
     const baseUrl = oracleBaseUrl.replace(/\/$/, '');
-    const url = `${baseUrl}/hcmRestApi/resources/11.13.18.05/legalEmployersLov?limit=50&fields=OrganizationId,Name&onlyData=true`;
+    const url = `${baseUrl}/hcmRestApi/resources/11.13.18.05/legalEmployersLov?limit=500&fields=OrganizationId,Name&onlyData=true`;
 
     const response = await axios.get(url, {
       httpsAgent: agent,
@@ -1452,7 +1452,7 @@ app.get('/api/oracle/businessunits', async (req, res) => {
     const agent = new https.Agent({ rejectUnauthorized: false });
 
     const baseUrl = oracleBaseUrl.replace(/\/$/, '');
-    const url = `${baseUrl}/hcmRestApi/resources/11.13.18.05/hcmBusinessUnitsLOV?limit=50&fields=BusinessUnitId,Name&onlyData=true`;
+    const url = `${baseUrl}/hcmRestApi/resources/11.13.18.05/hcmBusinessUnitsLOV?limit=500&fields=BusinessUnitId,Name&onlyData=true`;
 
     const response = await axios.get(url, {
       httpsAgent: agent,
