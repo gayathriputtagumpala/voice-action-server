@@ -5,9 +5,40 @@ const axios = require('axios');
 const FormData = require('form-data');
 require('dotenv').config();
 
-const WHATSAPP_TOKEN = process.env.WHATSAPP_TOKEN || 'EAAUM705DgWYBRrz7Jj5IjWUoINC6iwsVuB5svBOe4Bsw1bck5tVIFEawKKKzn3v0d1ycmDIpkvBulkb61Gh999cjlNU7HZART6rYJNmfSqPLBH3b5VRmNyfRX6dXH4V6hGnPZAOViaQEjWKns4YmQaAcbNSLBoNhWBQARwR8igFWKg6UZBMDpAvl2VNd7zah3DZBR4ecc1oKJxZCSZBds1QDJrZAs5q1ZBcgk06OLwI2BJshvyQ1ZCdTHdu8NZAmT4K0m64o77nS8Bv7SVudHgqgqaOQZDZD';
-const WHATSAPP_PHONE_ID = process.env.WHATSAPP_PHONE_ID || '1098869149981369';
-const WHATSAPP_VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || 'quadrobay2025';
+const fs = require('fs');
+const path = require('path');
+
+const CONFIG_PATH = path.join(__dirname, 'whatsapp_config.json');
+
+const DEFAULT_WHATSAPP_TOKEN = 'EAAUM705DgWYBRrz7Jj5IjWUoINC6iwsVuB5svBOe4Bsw1bck5tVIFEawKKKzn3v0d1ycmDIpkvBulkb61Gh999cjlNU7HZART6rYJNmfSqPLBH3b5VRmNyfRX6dXH4V6hGnPZAOViaQEjWKns4YmQaAcbNSLBoNhWBQARwR8igFWKg6UZBMDpAvl2VNd7zah3DZBR4ecc1oKJxZCSZBds1QDJrZAs5q1ZBcgk06OLwI2BJshvyQ1ZCdTHdu8NZAmT4K0m64o77nS8Bv7SVudHgqgqaOQZDZD';
+const DEFAULT_WHATSAPP_PHONE_ID = '1098869149981369';
+const DEFAULT_WHATSAPP_VERIFY_TOKEN = 'quadrobay2025';
+
+function getWhatsAppConfig() {
+  try {
+    if (fs.existsSync(CONFIG_PATH)) {
+      const data = fs.readFileSync(CONFIG_PATH, 'utf8');
+      return JSON.parse(data);
+    }
+  } catch (e) {
+    console.error('Error reading whatsapp config:', e);
+  }
+  return {
+    token: process.env.WHATSAPP_TOKEN || DEFAULT_WHATSAPP_TOKEN,
+    phoneId: process.env.WHATSAPP_PHONE_ID || DEFAULT_WHATSAPP_PHONE_ID,
+    verifyToken: process.env.WHATSAPP_VERIFY_TOKEN || DEFAULT_WHATSAPP_VERIFY_TOKEN
+  };
+}
+
+function saveWhatsAppConfig(config) {
+  try {
+    fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2), 'utf8');
+    return true;
+  } catch (e) {
+    console.error('Error writing whatsapp config:', e);
+    return false;
+  }
+}
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -19,6 +50,24 @@ const upload = multer({ storage: multer.memoryStorage() });
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
+});
+
+app.get('/api/whatsapp/config', (req, res) => {
+  res.json(getWhatsAppConfig());
+});
+
+app.post('/api/whatsapp/config', (req, res) => {
+  const { token, phoneId, verifyToken } = req.body;
+  const config = getWhatsAppConfig();
+  if (token) config.token = token.trim();
+  if (phoneId) config.phoneId = phoneId.trim();
+  if (verifyToken) config.verifyToken = verifyToken.trim();
+  
+  if (saveWhatsAppConfig(config)) {
+    res.json({ success: true, message: 'WhatsApp configuration updated successfully!' });
+  } else {
+    res.status(500).json({ error: 'Failed to save configuration.' });
+  }
 });
 
 // Oracle SSO verification endpoint
@@ -1432,8 +1481,10 @@ app.get('/webhook/whatsapp', (req, res) => {
   const token = req.query['hub.verify_token'];
   const challenge = req.query['hub.challenge'];
 
+  const config = getWhatsAppConfig();
+
   if (mode === 'subscribe' && 
-      token === WHATSAPP_VERIFY_TOKEN) {
+      token === config.verifyToken) {
     console.log('WhatsApp webhook verified!');
     res.status(200).send(challenge);
   } else {
@@ -1750,6 +1801,7 @@ async function handleWhatsAppText(from, text) {
 // ─── HANDLE VOICE NOTE ───────────────────────────────
 async function handleWhatsAppVoice(from, audioId) {
   try {
+    const config = getWhatsAppConfig();
     await sendWhatsAppMessage(from, 
       '🎙️ Voice note received! Transcribing...');
     
@@ -1757,7 +1809,7 @@ async function handleWhatsAppVoice(from, audioId) {
     const mediaRes = await axios.get(
       `https://graph.facebook.com/v18.0/${audioId}`,
       { headers: { 
-        'Authorization': `Bearer ${WHATSAPP_TOKEN}` 
+        'Authorization': `Bearer ${config.token}` 
       }}
     );
     
@@ -1767,7 +1819,7 @@ async function handleWhatsAppVoice(from, audioId) {
     // Step 2: Download audio
     const audioRes = await axios.get(audioUrl, {
       headers: { 
-        'Authorization': `Bearer ${WHATSAPP_TOKEN}` 
+        'Authorization': `Bearer ${config.token}` 
       },
       responseType: 'arraybuffer'
     });
@@ -2501,8 +2553,9 @@ async function processHireEmployee(from, details) {
 // ─── SEND WHATSAPP MESSAGE ────────────────────────────
 async function sendWhatsAppMessage(to, message) {
   try {
+    const config = getWhatsAppConfig();
     await axios.post(
-      `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_ID}/messages`,
+      `https://graph.facebook.com/v18.0/${config.phoneId}/messages`,
       {
         messaging_product: 'whatsapp',
         to: to,
@@ -2510,7 +2563,7 @@ async function sendWhatsAppMessage(to, message) {
         text: { body: message }
       },
       { headers: {
-        'Authorization': `Bearer ${WHATSAPP_TOKEN}`,
+        'Authorization': `Bearer ${config.token}`,
         'Content-Type': 'application/json'
       }}
     );
