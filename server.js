@@ -312,6 +312,66 @@ app.get('/api/oracle/worker', async (req, res) => {
 
     const managerSelfLink = currentManager?.links?.find(l => l.rel === 'self')?.href;
 
+    // Lookup full Names from LOVs in parallel to keep response ultra fast
+    let jobName = assignment?.JobName || assignment?.JobCode || 'Not Assigned';
+    let locationName = assignment?.LocationCode || 'Not Assigned';
+    let positionName = assignment?.PositionName || assignment?.PositionCode || 'Not Assigned';
+    let gradeName = assignment?.GradeName || assignment?.GradeCode || 'Not Assigned';
+
+    const lookupPromises = [];
+
+    if (assignment?.JobId) {
+      lookupPromises.push(
+        axios.get(`${baseUrl}/hcmRestApi/resources/11.13.18.05/jobs?limit=500&fields=JobId,JobCode,Name&onlyData=true`, {
+          httpsAgent: agent,
+          headers: { 'Authorization': oracleAuth, 'Content-Type': 'application/json' }
+        }).then(res => {
+          const matched = (res.data.items || []).find(j => Number(j.JobId) === Number(assignment.JobId));
+          if (matched) jobName = matched.Name;
+        }).catch(err => console.log('Job lookup error:', err.message))
+      );
+    }
+
+    if (assignment?.LocationId) {
+      lookupPromises.push(
+        axios.get(`${baseUrl}/hcmRestApi/resources/11.13.18.05/locations?limit=100&fields=LocationId,LocationCode,LocationName&onlyData=true`, {
+          httpsAgent: agent,
+          headers: { 'Authorization': oracleAuth, 'Content-Type': 'application/json' }
+        }).then(res => {
+          const matched = (res.data.items || []).find(l => Number(l.LocationId) === Number(assignment.LocationId));
+          if (matched) locationName = matched.LocationName;
+        }).catch(err => console.log('Location lookup error:', err.message))
+      );
+    }
+
+    if (assignment?.PositionId) {
+      lookupPromises.push(
+        axios.get(`${baseUrl}/hcmRestApi/resources/11.13.18.05/positions?limit=500&fields=PositionId,PositionCode,Name&onlyData=true`, {
+          httpsAgent: agent,
+          headers: { 'Authorization': oracleAuth, 'Content-Type': 'application/json' }
+        }).then(res => {
+          const matched = (res.data.items || []).find(p => Number(p.PositionId) === Number(assignment.PositionId));
+          if (matched) positionName = matched.Name;
+        }).catch(err => console.log('Position lookup error:', err.message))
+      );
+    }
+
+    if (assignment?.GradeId) {
+      lookupPromises.push(
+        axios.get(`${baseUrl}/hcmRestApi/resources/11.13.18.05/grades?limit=500&fields=GradeId,GradeCode,GradeName&onlyData=true`, {
+          httpsAgent: agent,
+          headers: { 'Authorization': oracleAuth, 'Content-Type': 'application/json' }
+        }).then(res => {
+          const matched = (res.data.items || []).find(g => Number(g.GradeId) === Number(assignment.GradeId));
+          if (matched) gradeName = matched.GradeName;
+        }).catch(err => console.log('Grade lookup error:', err.message))
+      );
+    }
+
+    if (lookupPromises.length > 0) {
+      await Promise.all(lookupPromises);
+    }
+
     res.json({
       PersonId: worker.PersonId,
       PersonNumber: worker.PersonNumber,
@@ -330,13 +390,13 @@ app.get('/api/oracle/worker', async (req, res) => {
       BusinessUnitId: assignment?.BusinessUnitId,
       BusinessUnitName: workRel?.BusinessUnitName || assignment?.BusinessUnitName,
       LocationId: assignment?.LocationId || null,
-      LocationName: assignment?.LocationCode || 'Not Assigned',
+      LocationName: locationName,
       JobId: assignment?.JobId || null,
-      JobName: assignment?.JobName || assignment?.JobCode || 'Not Assigned',
+      JobName: jobName,
       PositionId: assignment?.PositionId || null,
-      PositionName: assignment?.PositionName || assignment?.PositionCode || 'Not Assigned',
+      PositionName: positionName,
       GradeId: assignment?.GradeId || null,
-      GradeName: assignment?.GradeName || assignment?.GradeCode || 'Not Assigned'
+      GradeName: gradeName
     });
   } catch (error) {
     console.error('Oracle Worker Error:', error.response?.data || error.message);
