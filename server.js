@@ -1430,12 +1430,24 @@ async function handleWhatsAppText(from, text) {
       await sendWhatsAppMessage(from,
         `👋 Welcome to Oracle HCM Voice Assistant!\n\n` +
         `Available commands:\n\n` +
-        `1️⃣ Assign Manager:\n` +
+        `1️⃣ **Assign Manager:**\n` +
         `"assign manager [manager_number] for employee [employee_number]"\n` +
         `Example: assign manager 4585 for employee 1405\n\n` +
-        `2️⃣ Change Department:\n` +
+        `2️⃣ **Change Department:**\n` +
         `"change department for employee [number] to [dept_name]"\n` +
         `Example: change department for employee 1405 to Consulting East US\n\n` +
+        `3️⃣ **Change Location:**\n` +
+        `"change location for employee [number] to [location_name]"\n` +
+        `Example: change location for employee 1405 to London\n\n` +
+        `4️⃣ **Change Job:**\n` +
+        `"change job for employee [number] to [job_name]"\n` +
+        `Example: change job for employee 1405 to Consultant\n\n` +
+        `5️⃣ **Change Position:**\n` +
+        `"change position for employee [number] to [position_name]"\n` +
+        `Example: change position for employee 1405 to Senior Consultant\n\n` +
+        `6️⃣ **Change Grade:**\n` +
+        `"change grade for employee [number] to [grade_name]"\n` +
+        `Example: change grade for employee 1405 to Grade 4\n\n` +
         `Or send a voice note in English! 🎙️`
       );
       return;
@@ -1471,16 +1483,11 @@ async function handleWhatsAppText(from, text) {
       }
       
     // CHANGE DEPARTMENT
-    } else if (lower.includes('department') || 
-               lower.includes('dept')) {
+    } else if (lower.includes('department') || lower.includes('dept')) {
       if (numbers.length >= 1) {
         const employeeNum = numbers[0];
-        
-        // Extract department name after "to"
         const toIndex = lower.indexOf(' to ');
-        const deptName = toIndex > -1 
-          ? text.substring(toIndex + 4).trim() 
-          : null;
+        const deptName = toIndex > -1 ? text.substring(toIndex + 4).trim() : null;
         
         if (deptName) {
           await sendWhatsAppMessage(from,
@@ -1498,6 +1505,110 @@ async function handleWhatsAppText(from, text) {
         await sendWhatsAppMessage(from,
           `Please provide employee number.\n` +
           `Example: change department for employee 1405 to Consulting East US`
+        );
+      }
+      
+    // CHANGE LOCATION
+    } else if (lower.includes('location') || lower.includes('loc')) {
+      if (numbers.length >= 1) {
+        const employeeNum = numbers[0];
+        const toIndex = lower.indexOf(' to ');
+        const locName = toIndex > -1 ? text.substring(toIndex + 4).trim() : null;
+        
+        if (locName) {
+          await sendWhatsAppMessage(from,
+            `⏳ Processing...\n` +
+            `Changing location for employee ${employeeNum} to ${locName}`
+          );
+          await processChangeLocation(from, employeeNum, locName);
+        } else {
+          await sendWhatsAppMessage(from,
+            `Please specify the location name.\n` +
+            `Example: change location for employee 1405 to London`
+          );
+        }
+      } else {
+        await sendWhatsAppMessage(from,
+          `Please provide employee number.\n` +
+          `Example: change location for employee 1405 to London`
+        );
+      }
+      
+    // CHANGE JOB
+    } else if (lower.includes('job')) {
+      if (numbers.length >= 1) {
+        const employeeNum = numbers[0];
+        const toIndex = lower.indexOf(' to ');
+        const jobName = toIndex > -1 ? text.substring(toIndex + 4).trim() : null;
+        
+        if (jobName) {
+          await sendWhatsAppMessage(from,
+            `⏳ Processing...\n` +
+            `Changing job for employee ${employeeNum} to ${jobName}`
+          );
+          await processChangeJob(from, employeeNum, jobName);
+        } else {
+          await sendWhatsAppMessage(from,
+            `Please specify the job name.\n` +
+            `Example: change job for employee 1405 to Consultant`
+          );
+        }
+      } else {
+        await sendWhatsAppMessage(from,
+          `Please provide employee number.\n` +
+          `Example: change job for employee 1405 to Consultant`
+        );
+      }
+      
+    // CHANGE POSITION
+    } else if (lower.includes('position') || lower.includes('pos')) {
+      if (numbers.length >= 1) {
+        const employeeNum = numbers[0];
+        const toIndex = lower.indexOf(' to ');
+        const posName = toIndex > -1 ? text.substring(toIndex + 4).trim() : null;
+        
+        if (posName) {
+          await sendWhatsAppMessage(from,
+            `⏳ Processing...\n` +
+            `Changing position for employee ${employeeNum} to ${posName}`
+          );
+          await processChangePosition(from, employeeNum, posName);
+        } else {
+          await sendWhatsAppMessage(from,
+            `Please specify the position name.\n` +
+            `Example: change position for employee 1405 to Senior Consultant`
+          );
+        }
+      } else {
+        await sendWhatsAppMessage(from,
+          `Please provide employee number.\n` +
+          `Example: change position for employee 1405 to Senior Consultant`
+        );
+      }
+      
+    // CHANGE GRADE
+    } else if (lower.includes('grade')) {
+      if (numbers.length >= 1) {
+        const employeeNum = numbers[0];
+        const toIndex = lower.indexOf(' to ');
+        const gradeName = toIndex > -1 ? text.substring(toIndex + 4).trim() : null;
+        
+        if (gradeName) {
+          await sendWhatsAppMessage(from,
+            `⏳ Processing...\n` +
+            `Changing grade for employee ${employeeNum} to ${gradeName}`
+          );
+          await processChangeGrade(from, employeeNum, gradeName);
+        } else {
+          await sendWhatsAppMessage(from,
+            `Please specify the grade name.\n` +
+            `Example: change grade for employee 1405 to Grade 4`
+          );
+        }
+      } else {
+        await sendWhatsAppMessage(from,
+          `Please provide employee number.\n` +
+          `Example: change grade for employee 1405 to Grade 4`
         );
       }
       
@@ -1777,6 +1888,424 @@ async function processChangeDepartment(from, employeeNum, deptName) {
       `❌ Failed to change department.\n` +
       `Error: ${errorDetail}`
     );
+  }
+}
+
+// ─── PROCESS CHANGE LOCATION ─────────────────────────
+async function processChangeLocation(from, employeeNum, locName) {
+  try {
+    const https = require('https');
+    const agent = new https.Agent({ rejectUnauthorized: false });
+    const baseUrl = (process.env.ORACLE_BASE_URL || 'https://fa-eubg-test-saasfademo1.ds-fa.oraclepdemos.com').replace(/\/$/, '');
+    const auth = process.env.ORACLE_AUTH || 'Basic dXNlcl9yMTNfYTJmOkQ/Nj82dXVD';
+
+    // Get worker details
+    const workerRes = await axios.get(
+      `${baseUrl}/hcmRestApi/resources/11.13.18.05/workers?q=PersonNumber%3D${employeeNum}&expand=workRelationships.assignments`,
+      { httpsAgent: agent, headers: { 'Authorization': auth }}
+    );
+    
+    if (!workerRes.data.items?.length) {
+      await sendWhatsAppMessage(from, `❌ Employee ${employeeNum} not found.`);
+      return;
+    }
+    
+    const worker = workerRes.data.items[0];
+    const workRel = worker.workRelationships?.[0];
+    const assignment = workRel?.assignments?.[0];
+    const assignmentLink = assignment?.links?.find(l => l.rel === 'self')?.href;
+    const parts = assignmentLink?.split('/');
+    const workersIdx = parts?.indexOf('workers');
+    const assignmentsIdx = parts?.lastIndexOf('assignments');
+    const encodedPersonId = parts?.[workersIdx + 1];
+    const encodedAssignmentId = parts?.[assignmentsIdx + 1];
+    const WorkRelationshipId = workRel?.PeriodOfServiceId;
+    
+    // Get locations list
+    const locRes = await axios.get(
+      `${baseUrl}/hcmRestApi/resources/11.13.18.05/locations?limit=100&fields=LocationId,LocationCode,LocationName&onlyData=true`,
+      { httpsAgent: agent, headers: { 'Authorization': auth }}
+    );
+    
+    const locations = (locRes.data.items || []).map(l => ({
+      LocationId: Number(l.LocationId),
+      LocationName: l.LocationName
+    }));
+    
+    const matchedLoc = locations.find(l => 
+      l.LocationName?.toLowerCase().includes(locName.toLowerCase()) ||
+      locName.toLowerCase().includes(l.LocationName?.toLowerCase())
+    );
+    
+    if (!matchedLoc) {
+      await sendWhatsAppMessage(from,
+        `❌ Location "${locName}" not found.\n` +
+        `Please check the location name and try again.`
+      );
+      return;
+    }
+    
+    // Change location using UPDATE mode with CORRECTION fallback
+    const patchUrl = `${baseUrl}/hcmRestApi/resources/11.13.18.05/workers/${encodedPersonId}/child/workRelationships/${WorkRelationshipId}/child/assignments/${encodedAssignmentId}`;
+    const body = {
+      "ActionCode": "ASG_CHANGE",
+      "LocationId": Number(matchedLoc.LocationId)
+    };
+
+    let updateSuccess = false;
+    const effectiveDate = new Date().toISOString().split('T')[0];
+
+    try {
+      console.log('Attempting Location UPDATE mode...');
+      await axios.patch(patchUrl, body, {
+        httpsAgent: agent,
+        headers: {
+          'Authorization': auth,
+          'Content-Type': 'application/json',
+          'Effective-Of': `RangeMode=UPDATE;RangeStartDate=${effectiveDate};RangeEndDate=4712-12-31`
+        }
+      });
+      updateSuccess = true;
+    } catch (updateErr) {
+      console.log('Location UPDATE mode failed, attempting CORRECTION...');
+      try {
+        await axios.patch(patchUrl, body, {
+          httpsAgent: agent,
+          headers: {
+            'Authorization': auth,
+            'Content-Type': 'application/json',
+            'Effective-Of': 'RangeMode=CORRECTION'
+          }
+        });
+        updateSuccess = true;
+      } catch (corrErr) {
+        throw corrErr;
+      }
+    }
+    
+    if (updateSuccess) {
+      await sendWhatsAppMessage(from,
+        `✅ Success!\n\n` +
+        `Employee: ${worker.DisplayName} (${employeeNum})\n` +
+        `New Location: ${matchedLoc.LocationName}\n\n` +
+        `Location changed successfully in Oracle Fusion! 🎉`
+      );
+    }
+  } catch (err) {
+    const errorDetail = err.response?.data?.detail || err.response?.data?.title || err.message;
+    await sendWhatsAppMessage(from, `❌ Failed to change location.\nError: ${errorDetail}`);
+  }
+}
+
+// ─── PROCESS CHANGE JOB ──────────────────────────────
+async function processChangeJob(from, employeeNum, jobName) {
+  try {
+    const https = require('https');
+    const agent = new https.Agent({ rejectUnauthorized: false });
+    const baseUrl = (process.env.ORACLE_BASE_URL || 'https://fa-eubg-test-saasfademo1.ds-fa.oraclepdemos.com').replace(/\/$/, '');
+    const auth = process.env.ORACLE_AUTH || 'Basic dXNlcl9yMTNfYTJmOkQ/Nj82dXVD';
+
+    const workerRes = await axios.get(
+      `${baseUrl}/hcmRestApi/resources/11.13.18.05/workers?q=PersonNumber%3D${employeeNum}&expand=workRelationships.assignments`,
+      { httpsAgent: agent, headers: { 'Authorization': auth }}
+    );
+    
+    if (!workerRes.data.items?.length) {
+      await sendWhatsAppMessage(from, `❌ Employee ${employeeNum} not found.`);
+      return;
+    }
+    
+    const worker = workerRes.data.items[0];
+    const workRel = worker.workRelationships?.[0];
+    const assignment = workRel?.assignments?.[0];
+    const assignmentLink = assignment?.links?.find(l => l.rel === 'self')?.href;
+    const parts = assignmentLink?.split('/');
+    const workersIdx = parts?.indexOf('workers');
+    const assignmentsIdx = parts?.lastIndexOf('assignments');
+    const encodedPersonId = parts?.[workersIdx + 1];
+    const encodedAssignmentId = parts?.[assignmentsIdx + 1];
+    const WorkRelationshipId = workRel?.PeriodOfServiceId;
+    
+    // Get jobs list
+    const jobRes = await axios.get(
+      `${baseUrl}/hcmRestApi/resources/11.13.18.05/jobs?limit=500&fields=JobId,JobCode,Name&onlyData=true`,
+      { httpsAgent: agent, headers: { 'Authorization': auth }}
+    );
+    
+    const jobs = (jobRes.data.items || []).map(j => ({
+      JobId: Number(j.JobId),
+      JobName: j.Name
+    }));
+    
+    const matchedJob = jobs.find(j => 
+      j.JobName?.toLowerCase().includes(jobName.toLowerCase()) ||
+      jobName.toLowerCase().includes(j.JobName?.toLowerCase())
+    );
+    
+    if (!matchedJob) {
+      await sendWhatsAppMessage(from,
+        `❌ Job "${jobName}" not found.\n` +
+        `Please check the job name and try again.`
+      );
+      return;
+    }
+    
+    const patchUrl = `${baseUrl}/hcmRestApi/resources/11.13.18.05/workers/${encodedPersonId}/child/workRelationships/${WorkRelationshipId}/child/assignments/${encodedAssignmentId}`;
+    const body = {
+      "ActionCode": "ASG_CHANGE",
+      "JobId": Number(matchedJob.JobId)
+    };
+
+    let updateSuccess = false;
+    const effectiveDate = new Date().toISOString().split('T')[0];
+
+    try {
+      console.log('Attempting Job UPDATE mode...');
+      await axios.patch(patchUrl, body, {
+        httpsAgent: agent,
+        headers: {
+          'Authorization': auth,
+          'Content-Type': 'application/json',
+          'Effective-Of': `RangeMode=UPDATE;RangeStartDate=${effectiveDate};RangeEndDate=4712-12-31`
+        }
+      });
+      updateSuccess = true;
+    } catch (updateErr) {
+      console.log('Job UPDATE mode failed, attempting CORRECTION...');
+      try {
+        await axios.patch(patchUrl, body, {
+          httpsAgent: agent,
+          headers: {
+            'Authorization': auth,
+            'Content-Type': 'application/json',
+            'Effective-Of': 'RangeMode=CORRECTION'
+          }
+        });
+        updateSuccess = true;
+      } catch (corrErr) {
+        throw corrErr;
+      }
+    }
+    
+    if (updateSuccess) {
+      await sendWhatsAppMessage(from,
+        `✅ Success!\n\n` +
+        `Employee: ${worker.DisplayName} (${employeeNum})\n` +
+        `New Job: ${matchedJob.JobName}\n\n` +
+        `Job changed successfully in Oracle Fusion! 🎉`
+      );
+    }
+  } catch (err) {
+    const errorDetail = err.response?.data?.detail || err.response?.data?.title || err.message;
+    await sendWhatsAppMessage(from, `❌ Failed to change job.\nError: ${errorDetail}`);
+  }
+}
+
+// ─── PROCESS CHANGE POSITION ─────────────────────────
+async function processChangePosition(from, employeeNum, posName) {
+  try {
+    const https = require('https');
+    const agent = new https.Agent({ rejectUnauthorized: false });
+    const baseUrl = (process.env.ORACLE_BASE_URL || 'https://fa-eubg-test-saasfademo1.ds-fa.oraclepdemos.com').replace(/\/$/, '');
+    const auth = process.env.ORACLE_AUTH || 'Basic dXNlcl9yMTNfYTJmOkQ/Nj82dXVD';
+
+    const workerRes = await axios.get(
+      `${baseUrl}/hcmRestApi/resources/11.13.18.05/workers?q=PersonNumber%3D${employeeNum}&expand=workRelationships.assignments`,
+      { httpsAgent: agent, headers: { 'Authorization': auth }}
+    );
+    
+    if (!workerRes.data.items?.length) {
+      await sendWhatsAppMessage(from, `❌ Employee ${employeeNum} not found.`);
+      return;
+    }
+    
+    const worker = workerRes.data.items[0];
+    const workRel = worker.workRelationships?.[0];
+    const assignment = workRel?.assignments?.[0];
+    const assignmentLink = assignment?.links?.find(l => l.rel === 'self')?.href;
+    const parts = assignmentLink?.split('/');
+    const workersIdx = parts?.indexOf('workers');
+    const assignmentsIdx = parts?.lastIndexOf('assignments');
+    const encodedPersonId = parts?.[workersIdx + 1];
+    const encodedAssignmentId = parts?.[assignmentsIdx + 1];
+    const WorkRelationshipId = workRel?.PeriodOfServiceId;
+    
+    // Get positions list
+    const posRes = await axios.get(
+      `${baseUrl}/hcmRestApi/resources/11.13.18.05/positions?limit=500&fields=PositionId,PositionCode,Name&onlyData=true`,
+      { httpsAgent: agent, headers: { 'Authorization': auth }}
+    );
+    
+    const positions = (posRes.data.items || []).map(p => ({
+      PositionId: Number(p.PositionId),
+      PositionName: p.Name
+    }));
+    
+    const matchedPos = positions.find(p => 
+      p.PositionName?.toLowerCase().includes(posName.toLowerCase()) ||
+      posName.toLowerCase().includes(p.PositionName?.toLowerCase())
+    );
+    
+    if (!matchedPos) {
+      await sendWhatsAppMessage(from,
+        `❌ Position "${posName}" not found.\n` +
+        `Please check the position name and try again.`
+      );
+      return;
+    }
+    
+    const patchUrl = `${baseUrl}/hcmRestApi/resources/11.13.18.05/workers/${encodedPersonId}/child/workRelationships/${WorkRelationshipId}/child/assignments/${encodedAssignmentId}`;
+    const body = {
+      "ActionCode": "ASG_CHANGE",
+      "PositionId": Number(matchedPos.PositionId)
+    };
+
+    let updateSuccess = false;
+    const effectiveDate = new Date().toISOString().split('T')[0];
+
+    try {
+      console.log('Attempting Position UPDATE mode...');
+      await axios.patch(patchUrl, body, {
+        httpsAgent: agent,
+        headers: {
+          'Authorization': auth,
+          'Content-Type': 'application/json',
+          'Effective-Of': `RangeMode=UPDATE;RangeStartDate=${effectiveDate};RangeEndDate=4712-12-31`
+        }
+      });
+      updateSuccess = true;
+    } catch (updateErr) {
+      console.log('Position UPDATE mode failed, attempting CORRECTION...');
+      try {
+        await axios.patch(patchUrl, body, {
+          httpsAgent: agent,
+          headers: {
+            'Authorization': auth,
+            'Content-Type': 'application/json',
+            'Effective-Of': 'RangeMode=CORRECTION'
+          }
+        });
+        updateSuccess = true;
+      } catch (corrErr) {
+        throw corrErr;
+      }
+    }
+    
+    if (updateSuccess) {
+      await sendWhatsAppMessage(from,
+        `✅ Success!\n\n` +
+        `Employee: ${worker.DisplayName} (${employeeNum})\n` +
+        `New Position: ${matchedPos.PositionName}\n\n` +
+        `Position changed successfully in Oracle Fusion! 🎉`
+      );
+    }
+  } catch (err) {
+    const errorDetail = err.response?.data?.detail || err.response?.data?.title || err.message;
+    await sendWhatsAppMessage(from, `❌ Failed to change position.\nError: ${errorDetail}`);
+  }
+}
+
+// ─── PROCESS CHANGE GRADE ────────────────────────────
+async function processChangeGrade(from, employeeNum, gradeName) {
+  try {
+    const https = require('https');
+    const agent = new https.Agent({ rejectUnauthorized: false });
+    const baseUrl = (process.env.ORACLE_BASE_URL || 'https://fa-eubg-test-saasfademo1.ds-fa.oraclepdemos.com').replace(/\/$/, '');
+    const auth = process.env.ORACLE_AUTH || 'Basic dXNlcl9yMTNfYTJmOkQ/Nj82dXVD';
+
+    const workerRes = await axios.get(
+      `${baseUrl}/hcmRestApi/resources/11.13.18.05/workers?q=PersonNumber%3D${employeeNum}&expand=workRelationships.assignments`,
+      { httpsAgent: agent, headers: { 'Authorization': auth }}
+    );
+    
+    if (!workerRes.data.items?.length) {
+      await sendWhatsAppMessage(from, `❌ Employee ${employeeNum} not found.`);
+      return;
+    }
+    
+    const worker = workerRes.data.items[0];
+    const workRel = worker.workRelationships?.[0];
+    const assignment = workRel?.assignments?.[0];
+    const assignmentLink = assignment?.links?.find(l => l.rel === 'self')?.href;
+    const parts = assignmentLink?.split('/');
+    const workersIdx = parts?.indexOf('workers');
+    const assignmentsIdx = parts?.lastIndexOf('assignments');
+    const encodedPersonId = parts?.[workersIdx + 1];
+    const encodedAssignmentId = parts?.[assignmentsIdx + 1];
+    const WorkRelationshipId = workRel?.PeriodOfServiceId;
+    
+    // Get grades list
+    const gradeRes = await axios.get(
+      `${baseUrl}/hcmRestApi/resources/11.13.18.05/grades?limit=500&fields=GradeId,GradeCode,GradeName&onlyData=true`,
+      { httpsAgent: agent, headers: { 'Authorization': auth }}
+    );
+    
+    const grades = (gradeRes.data.items || []).map(g => ({
+      GradeId: Number(g.GradeId),
+      GradeName: g.GradeName
+    }));
+    
+    const matchedGrade = grades.find(g => 
+      g.GradeName?.toLowerCase().includes(gradeName.toLowerCase()) ||
+      gradeName.toLowerCase().includes(g.GradeName?.toLowerCase())
+    );
+    
+    if (!matchedGrade) {
+      await sendWhatsAppMessage(from,
+        `❌ Grade "${gradeName}" not found.\n` +
+        `Please check the grade name and try again.`
+      );
+      return;
+    }
+    
+    const patchUrl = `${baseUrl}/hcmRestApi/resources/11.13.18.05/workers/${encodedPersonId}/child/workRelationships/${WorkRelationshipId}/child/assignments/${encodedAssignmentId}`;
+    const body = {
+      "ActionCode": "ASG_CHANGE",
+      "GradeId": Number(matchedGrade.GradeId)
+    };
+
+    let updateSuccess = false;
+    const effectiveDate = new Date().toISOString().split('T')[0];
+
+    try {
+      console.log('Attempting Grade UPDATE mode...');
+      await axios.patch(patchUrl, body, {
+        httpsAgent: agent,
+        headers: {
+          'Authorization': auth,
+          'Content-Type': 'application/json',
+          'Effective-Of': `RangeMode=UPDATE;RangeStartDate=${effectiveDate};RangeEndDate=4712-12-31`
+        }
+      });
+      updateSuccess = true;
+    } catch (updateErr) {
+      console.log('Grade UPDATE mode failed, attempting CORRECTION...');
+      try {
+        await axios.patch(patchUrl, body, {
+          httpsAgent: agent,
+          headers: {
+            'Authorization': auth,
+            'Content-Type': 'application/json',
+            'Effective-Of': 'RangeMode=CORRECTION'
+          }
+        });
+        updateSuccess = true;
+      } catch (corrErr) {
+        throw corrErr;
+      }
+    }
+    
+    if (updateSuccess) {
+      await sendWhatsAppMessage(from,
+        `✅ Success!\n\n` +
+        `Employee: ${worker.DisplayName} (${employeeNum})\n` +
+        `New Grade: ${matchedGrade.GradeName}\n\n` +
+        `Grade changed successfully in Oracle Fusion! 🎉`
+      );
+    }
+  } catch (err) {
+    const errorDetail = err.response?.data?.detail || err.response?.data?.title || err.message;
+    await sendWhatsAppMessage(from, `❌ Failed to change grade.\nError: ${errorDetail}`);
   }
 }
 
