@@ -628,7 +628,8 @@ app.patch('/api/oracle/department', async (req, res) => {
 
     const body = {
       "ActionCode": "ASG_CHANGE",
-      "DepartmentId": Number(DepartmentId)
+      "DepartmentId": Number(DepartmentId),
+      "OrganizationId": Number(DepartmentId)
     };
 
     console.log('Attempting UPDATE mode...');
@@ -1894,7 +1895,8 @@ async function processChangeDepartment(from, employeeNum, deptName) {
     const patchUrl = `${baseUrl}/hcmRestApi/resources/11.13.18.05/workers/${encodedPersonId}/child/workRelationships/${WorkRelationshipId}/child/assignments/${encodedAssignmentId}`;
     const body = {
       "ActionCode": "ASG_CHANGE",
-      "DepartmentId": Number(matchedDept.DepartmentId)
+      "DepartmentId": Number(matchedDept.DepartmentId),
+      "OrganizationId": Number(matchedDept.DepartmentId)
     };
 
     let updateSuccess = false;
