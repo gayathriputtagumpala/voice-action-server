@@ -1694,19 +1694,21 @@ async function processChangeDepartment(from, employeeNum, deptName) {
     const encodedAssignmentId = parts?.[assignmentsIdx + 1];
     const WorkRelationshipId = workRel?.PeriodOfServiceId;
     
-    // Get departments list and find matching department
+    // Get departments list from stable resource and find matching department
     const deptRes = await axios.get(
-      `${baseUrl}/hcmRestApi/resources/11.13.18.05/departments?limit=100&fields=DepartmentId,DepartmentName&onlyData=true`,
+      `${baseUrl}/hcmRestApi/resources/11.13.18.05/departments?onlyData=true&limit=500`,
       { httpsAgent: agent,
         headers: { 'Authorization': auth }}
     );
     
-    const departments = deptRes.data.items || [];
+    const departments = (deptRes.data.items || []).map(d => ({
+      DepartmentId: Number(d.OrganizationId),
+      DepartmentName: d.Name
+    }));
+    
     const matchedDept = departments.find(d => 
-      d.DepartmentName?.toLowerCase()
-        .includes(deptName.toLowerCase()) ||
-      deptName.toLowerCase()
-        .includes(d.DepartmentName?.toLowerCase())
+      d.DepartmentName?.toLowerCase().includes(deptName.toLowerCase()) ||
+      deptName.toLowerCase().includes(d.DepartmentName?.toLowerCase())
     );
     
     if (!matchedDept) {
@@ -1717,33 +1719,63 @@ async function processChangeDepartment(from, employeeNum, deptName) {
       return;
     }
     
-    // Change department
-    const today = new Date().toISOString().split('T')[0];
+    // Change department using UPDATE mode with CORRECTION fallback
     const patchUrl = `${baseUrl}/hcmRestApi/resources/11.13.18.05/workers/${encodedPersonId}/child/workRelationships/${WorkRelationshipId}/child/assignments/${encodedAssignmentId}`;
-    
-    await axios.patch(patchUrl,
-      { ActionCode: 'ASG_CHANGE',
-        DepartmentId: Number(matchedDept.DepartmentId) },
-      { httpsAgent: agent,
+    const body = {
+      "ActionCode": "ASG_CHANGE",
+      "DepartmentId": Number(matchedDept.DepartmentId)
+    };
+
+    let updateSuccess = false;
+    const effectiveDate = new Date().toISOString().split('T')[0]; // Current date
+
+    try {
+      console.log('Attempting WhatsApp UPDATE mode...');
+      await axios.patch(patchUrl, body, {
+        httpsAgent: agent,
         headers: {
           'Authorization': auth,
           'Content-Type': 'application/json',
-          'Effective-Of': `RangeMode=UPDATE;RangeStartDate=${today};RangeEndDate=4712-12-31`
-        }}
-    );
+          'Effective-Of': `RangeMode=UPDATE;RangeStartDate=${effectiveDate};RangeEndDate=4712-12-31`
+        }
+      });
+      updateSuccess = true;
+      console.log('WhatsApp UPDATE mode succeeded!');
+    } catch (updateErr) {
+      console.log('WhatsApp UPDATE mode failed, attempting CORRECTION mode...');
+      console.log('Update Error Details:', JSON.stringify(updateErr.response?.data || updateErr.message));
+      
+      try {
+        await axios.patch(patchUrl, body, {
+          httpsAgent: agent,
+          headers: {
+            'Authorization': auth,
+            'Content-Type': 'application/json',
+            'Effective-Of': 'RangeMode=CORRECTION'
+          }
+        });
+        updateSuccess = true;
+        console.log('WhatsApp CORRECTION mode succeeded!');
+      } catch (corrErr) {
+        console.error('WhatsApp CORRECTION mode failed:', corrErr.response?.data || corrErr.message);
+        throw corrErr;
+      }
+    }
     
-    await sendWhatsAppMessage(from,
-      `✅ Success!\n\n` +
-      `Employee: ${worker.DisplayName} (${employeeNum})\n` +
-      `New Department: ${matchedDept.DepartmentName}\n\n` +
-      `Department changed successfully in Oracle Fusion! 🎉`
-    );
-    
+    if (updateSuccess) {
+      await sendWhatsAppMessage(from,
+        `✅ Success!\n\n` +
+        `Employee: ${worker.DisplayName} (${employeeNum})\n` +
+        `New Department: ${matchedDept.DepartmentName}\n\n` +
+        `Department changed successfully in Oracle Fusion! 🎉`
+      );
+    }
   } catch (err) {
-    console.error('Change dept error:', err.response?.data || err.message);
+    const errorDetail = err.response?.data?.detail || err.response?.data?.title || err.message;
+    console.error('Change dept error:', errorDetail);
     await sendWhatsAppMessage(from,
       `❌ Failed to change department.\n` +
-      `Error: ${err.response?.data?.detail || err.message}`
+      `Error: ${errorDetail}`
     );
   }
 }
