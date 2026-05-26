@@ -1305,6 +1305,97 @@ app.patch('/api/oracle/grade', async (req, res) => {
   }
 });
 
+// ─── CHANGE BUSINESS UNIT ─────────────────────────────
+app.patch('/api/oracle/businessunit', async (req, res) => {
+  let oracleAuth = req.headers['x-oracle-auth'];
+  if (!oracleAuth || oracleAuth === 'null' || oracleAuth === 'undefined') {
+    oracleAuth = process.env.ORACLE_AUTH;
+  }
+  let oracleBaseUrl = req.headers['x-oracle-url'];
+  if (!oracleBaseUrl || oracleBaseUrl === 'null' || oracleBaseUrl === 'undefined') {
+    oracleBaseUrl = process.env.ORACLE_BASE_URL;
+  }
+  try {
+    const { 
+      assignmentSelfLink,
+      encodedPersonId, 
+      WorkRelationshipId, 
+      encodedAssignmentId,
+      BusinessUnitId,
+      BusinessUnitName,
+      EffectiveDate
+    } = req.body;
+
+    console.log(`[${new Date().toISOString()}] PATCH Business Unit Request Received`);
+    
+    const effectiveDate = EffectiveDate || '2025-05-01';
+
+    let url = assignmentSelfLink;
+    if (!url) {
+      const baseUrl = (oracleBaseUrl || process.env.ORACLE_BASE_URL).replace(/\/$/, '');
+      url = `${baseUrl}/hcmRestApi/resources/11.13.18.05/workers/${encodedPersonId}/child/workRelationships/${WorkRelationshipId}/child/assignments/${encodedAssignmentId}`;
+    }
+
+    console.log('PATCH URL:', url);
+
+    const https = require('https');
+    const agent = new https.Agent({ rejectUnauthorized: false });
+
+    const body = {
+      "ActionCode": "ASG_CHANGE",
+      "BusinessUnitId": Number(BusinessUnitId)
+    };
+
+    console.log('Request body:', JSON.stringify(body));
+
+    console.log('Attempting UPDATE mode for Business Unit...');
+    try {
+      const response = await axios.patch(url, body, {
+        httpsAgent: agent,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': oracleAuth,
+          'Effective-Of': `RangeMode=UPDATE;RangeStartDate=${effectiveDate};RangeEndDate=4712-12-31`
+        }
+      });
+
+      console.log('UPDATE mode success for Business Unit:', response.status);
+      res.json({
+        success: true,
+        message: `Business Unit changed to ${BusinessUnitName} successfully (UPDATE mode)`
+      });
+    } catch (updateErr) {
+      console.log('UPDATE mode failed for Business Unit, trying CORRECTION mode...');
+      console.log('Update Business Unit Error Details:', JSON.stringify(updateErr.response?.data || updateErr.message));
+
+      const corrResponse = await axios.patch(url, body, {
+        httpsAgent: agent,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': oracleAuth,
+          'Effective-Of': 'RangeMode=CORRECTION'
+        }
+      });
+
+      console.log('CORRECTION mode success for Business Unit:', corrResponse.status);
+      res.json({
+        success: true,
+        message: `Business Unit changed to ${BusinessUnitName} successfully (CORRECTION mode)`
+      });
+    }
+
+  } catch (err) {
+    console.error('Business Unit change error:', err.response?.status);
+    console.error('Business Unit error data:', JSON.stringify(err.response?.data));
+    res.status(500).json({
+      error: err.response?.data?.detail ||
+             err.response?.data?.title ||
+             JSON.stringify(err.response?.data) ||
+             err.message
+    });
+  }
+});
+
 app.post('/api/oracle/hire', async (req, res) => {
   try {
     const {
@@ -1803,6 +1894,32 @@ async function handleWhatsAppText(from, text) {
         await sendWhatsAppMessage(from,
           `Please provide employee number.\n` +
           `Example: change grade for employee 1405 to Grade 4`
+        );
+      }
+      
+    // CHANGE BUSINESS UNIT
+    } else if (lower.includes('business unit') || lower.includes('bu ')) {
+      if (numbers.length >= 1) {
+        const employeeNum = numbers[0];
+        const toIndex = lower.indexOf(' to ');
+        const buName = toIndex > -1 ? text.substring(toIndex + 4).trim() : null;
+        
+        if (buName) {
+          await sendWhatsAppMessage(from,
+            `⏳ Processing...\n` +
+            `Changing business unit for employee ${employeeNum} to ${buName}`
+          );
+          await processChangeBusinessUnit(from, employeeNum, buName);
+        } else {
+          await sendWhatsAppMessage(from,
+            `Please specify the business unit name.\n` +
+            `Example: change business unit for employee 1405 to US1 Business Unit`
+          );
+        }
+      } else {
+        await sendWhatsAppMessage(from,
+          `Please provide employee number.\n` +
+          `Example: change business unit for employee 1405 to US1 Business Unit`
         );
       }
       
@@ -2502,6 +2619,110 @@ async function processChangeGrade(from, employeeNum, gradeName) {
   } catch (err) {
     const errorDetail = err.response?.data?.detail || err.response?.data?.title || err.message;
     await sendWhatsAppMessage(from, `❌ Failed to change grade.\nError: ${errorDetail}`);
+  }
+}
+
+// ─── PROCESS CHANGE BUSINESS UNIT ──────────────────────
+async function processChangeBusinessUnit(from, employeeNum, buName) {
+  try {
+    const https = require('https');
+    const agent = new https.Agent({ rejectUnauthorized: false });
+    const baseUrl = (process.env.ORACLE_BASE_URL || 'https://fa-eubg-test-saasfademo1.ds-fa.oraclepdemos.com').replace(/\/$/, '');
+    const auth = process.env.ORACLE_AUTH || 'Basic dXNlcl9yMTNfYTJmOkQ/Nj82dXVD';
+
+    const workerRes = await axios.get(
+      `${baseUrl}/hcmRestApi/resources/11.13.18.05/workers?q=PersonNumber%3D${employeeNum}&expand=workRelationships.assignments`,
+      { httpsAgent: agent, headers: { 'Authorization': auth }}
+    );
+    
+    if (!workerRes.data.items?.length) {
+      await sendWhatsAppMessage(from, `❌ Employee ${employeeNum} not found.`);
+      return;
+    }
+    
+    const worker = workerRes.data.items[0];
+    const workRel = worker.workRelationships?.[0];
+    const assignment = workRel?.assignments?.[0];
+    const assignmentLink = assignment?.links?.find(l => l.rel === 'self')?.href;
+    const parts = assignmentLink?.split('/');
+    const workersIdx = parts?.indexOf('workers');
+    const assignmentsIdx = parts?.lastIndexOf('assignments');
+    const encodedPersonId = parts?.[workersIdx + 1];
+    const encodedAssignmentId = parts?.[assignmentsIdx + 1];
+    const WorkRelationshipId = workRel?.PeriodOfServiceId;
+    
+    // Get Business Units list
+    const buRes = await axios.get(
+      `${baseUrl}/hcmRestApi/resources/11.13.18.05/hcmBusinessUnitsLOV?limit=500&fields=BusinessUnitId,BusinessUnitName&onlyData=true`,
+      { httpsAgent: agent, headers: { 'Authorization': auth }}
+    );
+    
+    const businessUnits = (buRes.data.items || []).map(b => ({
+      BusinessUnitId: Number(b.BusinessUnitId),
+      BusinessUnitName: b.BusinessUnitName
+    }));
+    
+    const matchedBU = businessUnits.find(b => 
+      b.BusinessUnitName?.toLowerCase().includes(buName.toLowerCase()) ||
+      buName.toLowerCase().includes(b.BusinessUnitName?.toLowerCase())
+    );
+    
+    if (!matchedBU) {
+      await sendWhatsAppMessage(from,
+        `❌ Business Unit "${buName}" not found.\n` +
+        `Please check the name and try again.`
+      );
+      return;
+    }
+    
+    const patchUrl = `${baseUrl}/hcmRestApi/resources/11.13.18.05/workers/${encodedPersonId}/child/workRelationships/${WorkRelationshipId}/child/assignments/${encodedAssignmentId}`;
+    const body = {
+      "ActionCode": "ASG_CHANGE",
+      "BusinessUnitId": Number(matchedBU.BusinessUnitId)
+    };
+
+    let updateSuccess = false;
+    const effectiveDate = new Date().toISOString().split('T')[0];
+
+    try {
+      console.log('Attempting Business Unit UPDATE mode...');
+      await axios.patch(patchUrl, body, {
+        httpsAgent: agent,
+        headers: {
+          'Authorization': auth,
+          'Content-Type': 'application/json',
+          'Effective-Of': `RangeMode=UPDATE;RangeStartDate=${effectiveDate};RangeEndDate=4712-12-31`
+        }
+      });
+      updateSuccess = true;
+    } catch (updateErr) {
+      console.log('Business Unit UPDATE mode failed, attempting CORRECTION...');
+      try {
+        await axios.patch(patchUrl, body, {
+          httpsAgent: agent,
+          headers: {
+            'Authorization': auth,
+            'Content-Type': 'application/json',
+            'Effective-Of': 'RangeMode=CORRECTION'
+          }
+        });
+        updateSuccess = true;
+      } catch (corrErr) {
+        throw corrErr;
+      }
+    }
+    
+    if (updateSuccess) {
+      await sendWhatsAppMessage(from,
+        `✅ Success!\n\n` +
+        `Employee: ${worker.DisplayName} (${employeeNum})\n` +
+        `New Business Unit: ${matchedBU.BusinessUnitName}\n\n` +
+        `Business Unit changed successfully in Oracle Fusion! 🎉`
+      );
+    }
+  } catch (err) {
+    const errorDetail = err.response?.data?.detail || err.response?.data?.title || err.message;
+    await sendWhatsAppMessage(from, `❌ Failed to change business unit.\nError: ${errorDetail}`);
   }
 }
 
