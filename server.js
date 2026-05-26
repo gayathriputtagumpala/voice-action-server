@@ -1672,7 +1672,7 @@ async function handleWhatsAppText(from, text) {
     }
     
     // Extract all numbers from message
-    const numbers = text.match(/\d{3,6}/g) || [];
+    const numbers = text.match(/\d{1,6}/g) || [];
     
     // HIRE EMPLOYEE
     if (lower.includes('hire') && lower.includes('employee')) {
@@ -1680,7 +1680,7 @@ async function handleWhatsAppText(from, text) {
       const firstName = nameMatch ? nameMatch[1] : null;
       const lastName = nameMatch ? nameMatch[2] : null;
 
-      const personMatch = text.match(/(?:person|number|no|id)\s*(\d{3,6})/i);
+      const personMatch = text.match(/(?:person|number|no|id)\s*(\d{1,6})/i);
       const personNumber = personMatch ? personMatch[1] : (numbers.length > 0 ? numbers[0] : null);
 
       const legalMatch = text.match(/(?:legal\s*employer|employer)\s*([^,;]+)/i);
@@ -1727,7 +1727,7 @@ async function handleWhatsAppText(from, text) {
       
     // GET EMPLOYEE DETAILS
     } else if (lower.includes('detail') || lower.includes('profile') || lower.includes('info') || lower.includes('show')) {
-      const personMatch = text.match(/(?:person|employee|number|no|id)\s*(\d{3,6})/i);
+      const personMatch = text.match(/(?:person|employee|number|no|id)\s*(\d{1,6})/i);
       const personNumber = personMatch ? personMatch[1] : (numbers.length > 0 ? numbers[0] : null);
       
       if (personNumber) {
