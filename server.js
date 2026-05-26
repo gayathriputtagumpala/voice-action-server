@@ -2602,18 +2602,95 @@ async function processGetEmployeeDetails(from, personNumber) {
     const workRel = worker.workRelationships?.[0];
     const assignment = workRel?.assignments?.[0];
 
-    // Current values
-    const currentJob = assignment?.JobName || assignment?.JobCode || 'Not Assigned';
-    const currentLoc = assignment?.LocationCode || 'Not Assigned';
-    const currentPos = assignment?.PositionName || assignment?.PositionCode || 'Not Assigned';
-    const currentGrade = assignment?.GradeName || assignment?.GradeCode || 'Not Assigned';
-    const currentDept = assignment?.DepartmentName || 'Not Assigned';
+    // Lookup full Names from LOVs in parallel to keep response ultra fast
+    let jobName = assignment?.JobName || assignment?.JobCode || 'Not Assigned';
+    let locationName = assignment?.LocationCode || 'Not Assigned';
+    let positionName = assignment?.PositionName || assignment?.PositionCode || 'Not Assigned';
+    let gradeName = assignment?.GradeName || assignment?.GradeCode || 'Not Assigned';
+    let currentDept = assignment?.DepartmentName || 'Not Assigned';
 
-    // Get manager
-    let currentManager = assignment?.managers?.find(m => m.ManagerType === "LINE_MANAGER") || assignment?.managers?.[0];
+    const lookupPromises = [];
+
+    if (assignment?.JobId) {
+      lookupPromises.push(
+        axios.get(`${baseUrl}/hcmRestApi/resources/11.13.18.05/jobs?limit=500&fields=JobId,JobCode,Name&onlyData=true`, {
+          httpsAgent: agent,
+          headers: { 'Authorization': oracleAuth, 'Content-Type': 'application/json' }
+        }).then(res => {
+          const matched = (res.data.items || []).find(j => Number(j.JobId) === Number(assignment.JobId));
+          if (matched) jobName = matched.Name;
+        }).catch(err => console.log('Job lookup error:', err.message))
+      );
+    }
+
+    if (assignment?.LocationId) {
+      lookupPromises.push(
+        axios.get(`${baseUrl}/hcmRestApi/resources/11.13.18.05/locations?limit=100&fields=LocationId,LocationCode,LocationName&onlyData=true`, {
+          httpsAgent: agent,
+          headers: { 'Authorization': oracleAuth, 'Content-Type': 'application/json' }
+        }).then(res => {
+          const matched = (res.data.items || []).find(l => Number(l.LocationId) === Number(assignment.LocationId));
+          if (matched) locationName = matched.LocationName;
+        }).catch(err => console.log('Location lookup error:', err.message))
+      );
+    }
+
+    if (assignment?.PositionId) {
+      lookupPromises.push(
+        axios.get(`${baseUrl}/hcmRestApi/resources/11.13.18.05/positions?limit=500&fields=PositionId,PositionCode,Name&onlyData=true`, {
+          httpsAgent: agent,
+          headers: { 'Authorization': oracleAuth, 'Content-Type': 'application/json' }
+        }).then(res => {
+          const matched = (res.data.items || []).find(p => Number(p.PositionId) === Number(assignment.PositionId));
+          if (matched) positionName = matched.Name;
+        }).catch(err => console.log('Position lookup error:', err.message))
+      );
+    }
+
+    if (assignment?.GradeId) {
+      lookupPromises.push(
+        axios.get(`${baseUrl}/hcmRestApi/resources/11.13.18.05/grades?limit=500&fields=GradeId,GradeCode,GradeName&onlyData=true`, {
+          httpsAgent: agent,
+          headers: { 'Authorization': oracleAuth, 'Content-Type': 'application/json' }
+        }).then(res => {
+          const matched = (res.data.items || []).find(g => Number(g.GradeId) === Number(assignment.GradeId));
+          if (matched) gradeName = matched.GradeName;
+        }).catch(err => console.log('Grade lookup error:', err.message))
+      );
+    }
+
+    if (lookupPromises.length > 0) {
+      await Promise.all(lookupPromises);
+    }
+
+    // Get manager details
+    let currentManager = assignment?.managers?.find(m => m.ManagerType === "LINE_MANAGER");
+    if (!currentManager && assignment?.managers?.length > 0) {
+      currentManager = assignment.managers[0];
+    }
+
     let currentManagerName = 'None';
-    if (currentManager) {
-      currentManagerName = currentManager.ManagerName || currentManager.ManagerAssignmentNumber || 'Line Manager';
+
+    if (currentManager && currentManager.ManagerAssignmentNumber) {
+      const managerAssignmentNum = currentManager.ManagerAssignmentNumber; 
+      const managerPersonNum = managerAssignmentNum.replace(/e/i, '');
+      
+      try {
+        const mgrUrl = `${baseUrl}/hcmRestApi/resources/11.13.18.05/workers?q=PersonNumber%3D${managerPersonNum}&fields=PersonId,PersonNumber,DisplayName&onlyData=true`;
+        
+        const mgrResponse = await axios.get(mgrUrl, {
+          httpsAgent: agent,
+          headers: { 'Authorization': oracleAuth, 'Content-Type': 'application/json' }
+        });
+
+        if (mgrResponse.data.items && mgrResponse.data.items.length > 0) {
+          currentManagerName = mgrResponse.data.items[0].DisplayName || mgrResponse.data.items[0].PersonNumber;
+        } else {
+          currentManagerName = currentManager?.ManagerName || managerAssignmentNum;
+        }
+      } catch (mgrErr) {
+        currentManagerName = currentManager?.ManagerName || managerAssignmentNum;
+      }
     }
 
     // Format response
@@ -2621,10 +2698,10 @@ async function processGetEmployeeDetails(from, personNumber) {
                 `🏷️ *Name:* ${displayName}\n` +
                 `🔢 *Person Number:* ${personNumber}\n` +
                 `🏢 *Department:* ${currentDept}\n` +
-                `💼 *Job:* ${currentJob}\n` +
-                `📍 *Location:* ${currentLoc}\n` +
-                `🎖️ *Position:* ${currentPos}\n` +
-                `🏅 *Grade:* ${currentGrade}\n` +
+                `💼 *Job:* ${jobName}\n` +
+                `📍 *Location:* ${locationName}\n` +
+                `🎖️ *Position:* ${positionName}\n` +
+                `🏅 *Grade:* ${gradeName}\n` +
                 `👤 *Reporting Manager:* ${currentManagerName}`;
 
     await sendWhatsAppMessage(from, msg);
