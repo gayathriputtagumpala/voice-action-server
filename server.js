@@ -5,6 +5,10 @@ const axios = require('axios');
 const FormData = require('form-data');
 require('dotenv').config();
 
+const WHATSAPP_TOKEN = process.env.WHATSAPP_TOKEN || 'EAAUM705DgWYBRrz7Jj5IjWUoINC6iwsVuB5svBOe4Bsw1bck5tVIFEawKKKzn3v0d1ycmDIpkvBulkb61Gh999cjlNU7HZART6rYJNmfSqPLBH3b5VRmNyfRX6dXH4V6hGnPZAOViaQEjWKns4YmQaAcbNSLBoNhWBQARwR8igFWKg6UZBMDpAvl2VNd7zah3DZBR4ecc1oKJxZCSZBds1QDJrZAs5q1ZBcgk06OLwI2BJshvyQ1ZCdTHdu8NZAmT4K0m64o77nS8Bv7SVudHgqgqaOQZDZD';
+const WHATSAPP_PHONE_ID = process.env.WHATSAPP_PHONE_ID || '1098869149981369';
+const WHATSAPP_VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || 'quadrobay2025';
+
 const app = express();
 const port = process.env.PORT || 3000;
 
@@ -1429,7 +1433,7 @@ app.get('/webhook/whatsapp', (req, res) => {
   const challenge = req.query['hub.challenge'];
 
   if (mode === 'subscribe' && 
-      token === (process.env.WHATSAPP_VERIFY_TOKEN || 'quadrobay2025')) {
+      token === WHATSAPP_VERIFY_TOKEN) {
     console.log('WhatsApp webhook verified!');
     res.status(200).send(challenge);
   } else {
@@ -1753,7 +1757,7 @@ async function handleWhatsAppVoice(from, audioId) {
     const mediaRes = await axios.get(
       `https://graph.facebook.com/v18.0/${audioId}`,
       { headers: { 
-        'Authorization': `Bearer ${process.env.WHATSAPP_TOKEN}` 
+        'Authorization': `Bearer ${WHATSAPP_TOKEN}` 
       }}
     );
     
@@ -1763,7 +1767,7 @@ async function handleWhatsAppVoice(from, audioId) {
     // Step 2: Download audio
     const audioRes = await axios.get(audioUrl, {
       headers: { 
-        'Authorization': `Bearer ${process.env.WHATSAPP_TOKEN}` 
+        'Authorization': `Bearer ${WHATSAPP_TOKEN}` 
       },
       responseType: 'arraybuffer'
     });
@@ -2498,7 +2502,7 @@ async function processHireEmployee(from, details) {
 async function sendWhatsAppMessage(to, message) {
   try {
     await axios.post(
-      `https://graph.facebook.com/v18.0/${process.env.WHATSAPP_PHONE_ID}/messages`,
+      `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_ID}/messages`,
       {
         messaging_product: 'whatsapp',
         to: to,
@@ -2506,7 +2510,7 @@ async function sendWhatsAppMessage(to, message) {
         text: { body: message }
       },
       { headers: {
-        'Authorization': `Bearer ${process.env.WHATSAPP_TOKEN}`,
+        'Authorization': `Bearer ${WHATSAPP_TOKEN}`,
         'Content-Type': 'application/json'
       }}
     );
