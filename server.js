@@ -1626,6 +1626,22 @@ async function handleWhatsAppText(from, text) {
         );
       }
       
+    // GET EMPLOYEE DETAILS
+    } else if (lower.includes('detail') || lower.includes('profile') || lower.includes('info') || lower.includes('show')) {
+      const personMatch = text.match(/(?:person|employee|number|no|id)\s*(\d{3,6})/i);
+      const personNumber = personMatch ? personMatch[1] : (numbers.length > 0 ? numbers[0] : null);
+      
+      if (personNumber) {
+        await sendWhatsAppMessage(from, `⏳ Retrieving details for employee number *${personNumber}*...`);
+        await processGetEmployeeDetails(from, personNumber);
+      } else {
+        await sendWhatsAppMessage(from, 
+          `🔍 *Retrieve Employee Details*:\n\n` +
+          `Please provide a valid person number.\n` +
+          `Example: "give person number 1406 details" or "show details for employee 1406"`
+        );
+      }
+      
     // ASSIGN MANAGER
     } else if (lower.includes('assign') && lower.includes('manager')) {
       if (numbers.length >= 2) {
@@ -2547,6 +2563,75 @@ async function processHireEmployee(from, details) {
       `❌ Failed to hire employee.\n\n` +
       `*Error details:* ${errorDetail}`
     );
+  }
+}
+
+// ─── PROCESS GET EMPLOYEE DETAILS ────────────────────
+async function processGetEmployeeDetails(from, personNumber) {
+  try {
+    const oracleAuth = process.env.ORACLE_AUTH;
+    const oracleBaseUrl = process.env.ORACLE_BASE_URL || 'https://fa-euth-dev58-saasfademo1.ds-fa.oraclepdemos.com';
+    const baseUrl = oracleBaseUrl.replace(/\/$/, '');
+    
+    const https = require('https');
+    const agent = new https.Agent({ rejectUnauthorized: false });
+
+    // Search worker
+    const url = `${baseUrl}/hcmRestApi/resources/11.13.18.05/workers?q=PersonNumber%3D${personNumber}&expand=workRelationships.assignments.managers`;
+    const urlName = `${baseUrl}/hcmRestApi/resources/11.13.18.05/workers?q=PersonNumber%3D${personNumber}&fields=PersonNumber,DisplayName&onlyData=true`;
+
+    const [response, responseName] = await Promise.all([
+      axios.get(url, {
+        httpsAgent: agent,
+        headers: { 'Authorization': oracleAuth, 'Content-Type': 'application/json' }
+      }),
+      axios.get(urlName, {
+        httpsAgent: agent,
+        headers: { 'Authorization': oracleAuth, 'Content-Type': 'application/json' }
+      })
+    ]);
+
+    const worker = response.data.items?.[0];
+    if (!worker) {
+      await sendWhatsAppMessage(from, `❌ Employee with Person Number *${personNumber}* was not found in Oracle Fusion.`);
+      return;
+    }
+
+    const workerName = responseName.data.items?.[0];
+    const displayName = workerName?.DisplayName || worker.DisplayName || 'Unknown';
+    const workRel = worker.workRelationships?.[0];
+    const assignment = workRel?.assignments?.[0];
+
+    // Current values
+    const currentJob = assignment?.JobName || assignment?.JobCode || 'Not Assigned';
+    const currentLoc = assignment?.LocationCode || 'Not Assigned';
+    const currentPos = assignment?.PositionName || assignment?.PositionCode || 'Not Assigned';
+    const currentGrade = assignment?.GradeName || assignment?.GradeCode || 'Not Assigned';
+    const currentDept = assignment?.DepartmentName || 'Not Assigned';
+
+    // Get manager
+    let currentManager = assignment?.managers?.find(m => m.ManagerType === "LINE_MANAGER") || assignment?.managers?.[0];
+    let currentManagerName = 'None';
+    if (currentManager) {
+      currentManagerName = currentManager.ManagerName || currentManager.ManagerAssignmentNumber || 'Line Manager';
+    }
+
+    // Format response
+    const msg = `👤 *Employee Details Profile*:\n\n` +
+                `🏷️ *Name:* ${displayName}\n` +
+                `🔢 *Person Number:* ${personNumber}\n` +
+                `🏢 *Department:* ${currentDept}\n` +
+                `💼 *Job:* ${currentJob}\n` +
+                `📍 *Location:* ${currentLoc}\n` +
+                `🎖️ *Position:* ${currentPos}\n` +
+                `🏅 *Grade:* ${currentGrade}\n` +
+                `👤 *Reporting Manager:* ${currentManagerName}`;
+
+    await sendWhatsAppMessage(from, msg);
+
+  } catch (err) {
+    console.error('Error fetching employee details:', err.message);
+    await sendWhatsAppMessage(from, `❌ Failed to fetch employee details for person *${personNumber}*.\n\n*Error:* ${err.message}`);
   }
 }
 
