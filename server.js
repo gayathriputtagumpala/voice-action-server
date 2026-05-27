@@ -5,6 +5,8 @@ const axios = require('axios');
 const FormData = require('form-data');
 require('dotenv').config();
 
+let whatsappSessions = {};
+
 const fs = require('fs');
 const path = require('path');
 
@@ -1574,6 +1576,155 @@ app.get('/api/oracle/businessunits', async (req, res) => {
   }
 });
 
+// ─── GET PO BY ORDER NUMBER ───────────────────────────
+app.get('/api/oracle/po/details', async (req, res) => {
+  try {
+    const { orderNumber } = req.query;
+    const oracleAuth = req.headers['x-oracle-auth'] ||
+      process.env.ORACLE_AUTH;
+    const oracleBaseUrl = req.headers['x-oracle-url'] ||
+      process.env.ORACLE_BASE_URL;
+
+    console.log('=== GET PO DETAILS ===');
+    console.log('Order Number:', orderNumber);
+
+    const https = require('https');
+    const agent = new https.Agent({ rejectUnauthorized: false });
+
+    const url = `${oracleBaseUrl}/fscmRestApi/resources/11.13.18.05/purchaseOrders?q=OrderNumber%3D%27${orderNumber}%27&fields=OrderNumber,Status,Total,Supplier,CreationDate,CurrencyCode,ProcurementBU,POHeaderId,StatusCode`;
+
+    const response = await axios.get(url, {
+      httpsAgent: agent,
+      headers: {
+        'Authorization': oracleAuth,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.data.items?.length) {
+      return res.status(404).json({
+        error: `PO Number ${orderNumber} not found`
+      });
+    }
+
+    const po = response.data.items[0];
+    res.json({
+      POHeaderId: po.POHeaderId,
+      OrderNumber: po.OrderNumber,
+      Status: po.Status,
+      StatusCode: po.StatusCode,
+      Total: po.Total,
+      CurrencyCode: po.CurrencyCode,
+      Supplier: po.Supplier,
+      CreationDate: po.CreationDate,
+      ProcurementBU: po.ProcurementBU,
+      canApprove: po.StatusCode === 'OPEN' || 
+                  po.StatusCode === 'PENDING_APPROVAL'
+    });
+
+  } catch (err) {
+    console.error('PO details error:', err.response?.status);
+    console.error('PO details error data:', 
+      JSON.stringify(err.response?.data));
+    res.status(500).json({
+      error: err.response?.data?.detail || err.message
+    });
+  }
+});
+
+// ─── GET ALL OPEN POs ─────────────────────────────────
+app.get('/api/oracle/po/list', async (req, res) => {
+  try {
+    const oracleAuth = req.headers['x-oracle-auth'] ||
+      process.env.ORACLE_AUTH;
+    const oracleBaseUrl = req.headers['x-oracle-url'] ||
+      process.env.ORACLE_BASE_URL;
+
+    const https = require('https');
+    const agent = new https.Agent({ rejectUnauthorized: false });
+
+    const url = `${oracleBaseUrl}/fscmRestApi/resources/11.13.18.05/purchaseOrders?q=StatusCode%3D%27OPEN%27&limit=20&fields=OrderNumber,Status,Total,Supplier,CurrencyCode,POHeaderId,StatusCode,CreationDate`;
+
+    const response = await axios.get(url, {
+      httpsAgent: agent,
+      headers: {
+        'Authorization': oracleAuth,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    const pos = response.data.items.map(po => ({
+      POHeaderId: po.POHeaderId,
+      OrderNumber: po.OrderNumber,
+      Status: po.Status,
+      StatusCode: po.StatusCode,
+      Total: po.Total,
+      CurrencyCode: po.CurrencyCode,
+      Supplier: po.Supplier,
+      CreationDate: po.CreationDate
+    }));
+
+    res.json({ purchaseOrders: pos, count: pos.length });
+
+  } catch (err) {
+    console.error('PO list error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── SUBMIT/APPROVE PO ────────────────────────────────
+app.post('/api/oracle/po/approve', async (req, res) => {
+  try {
+    const { POHeaderId, OrderNumber, comments } = req.body;
+    const oracleAuth = req.headers['x-oracle-auth'] ||
+      process.env.ORACLE_AUTH;
+    const oracleBaseUrl = req.headers['x-oracle-url'] ||
+      process.env.ORACLE_BASE_URL;
+
+    console.log('=== APPROVE PO ===');
+    console.log('POHeaderId:', POHeaderId);
+    console.log('OrderNumber:', OrderNumber);
+
+    const https = require('https');
+    const agent = new https.Agent({ rejectUnauthorized: false });
+
+    const url = `${oracleBaseUrl}/fscmRestApi/resources/11.13.18.05/purchaseOrders/${POHeaderId}/action/submit`;
+
+    const response = await axios.post(url,
+      { comments: comments || 'Approved via Voice Assistant' },
+      {
+        httpsAgent: agent,
+        headers: {
+          'Authorization': oracleAuth,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    console.log('PO approve success:', response.status);
+    res.json({
+      success: true,
+      message: `PO ${OrderNumber} approved successfully!`
+    });
+
+  } catch (err) {
+    console.error('PO approve error:', err.response?.status);
+    console.error('PO approve data:', 
+      JSON.stringify(err.response?.data));
+
+    if (err.response?.status === 403) {
+      res.status(403).json({
+        error: 'You do not have permission to approve this PO. ' +
+               'Please contact your Oracle administrator.'
+      });
+    } else {
+      res.status(500).json({
+        error: err.response?.data?.detail || err.message
+      });
+    }
+  }
+});
+
 // ─── WHATSAPP WEBHOOK VERIFICATION ───────────────────
 app.get('/webhook/whatsapp', (req, res) => {
   const mode = req.query['hub.mode'];
@@ -1666,6 +1817,10 @@ async function handleWhatsAppText(from, text) {
         `7️⃣ **Hire Employee:**\n` +
         `"hire employee [FirstName] [LastName] with person [PersonNumber], legal employer [EmployerName], business unit [BU_Name], job [JobCode], location [LocationCode]"\n` +
         `Example: hire employee John Doe with person 9988, legal employer US1 Legal Entity, business unit US1 Business Unit, job JOB018, location US East\n\n` +
+        `*Procurement Commands:*\n` +
+        `📦 **PO Status:** "PO status US164932"\n` +
+        `📋 **Open POs:** "Show open purchase orders"\n` +
+        `✅ **Approve PO:** "approve US164932"\n\n` +
         `Or send a voice note in English! 🎙️`
       );
       return;
@@ -1923,6 +2078,71 @@ async function handleWhatsAppText(from, text) {
         );
       }
       
+    // PO COMMANDS
+    } else if (lower.includes('po') || lower.includes('purchase order') || lower.includes('order status')) {
+      const poMatch = text.match(/[A-Z]{2}\d{6}/i) || text.match(/PO[-\s]?\d+/i);
+      const poNumber = poMatch ? poMatch[0].replace(/[-\s]/g, '').toUpperCase() : null;
+
+      if (poNumber) {
+        await sendWhatsAppMessage(from, `🔍 Looking up PO: ${poNumber}...`);
+        await handleWhatsAppPO(from, poNumber);
+      } else if (lower.includes('list') || lower.includes('pending') || lower.includes('open')) {
+        await sendWhatsAppMessage(from, `📋 Fetching open purchase orders...`);
+        await handleWhatsAppPOList(from);
+      } else {
+        await sendWhatsAppMessage(from,
+          `Please provide a PO number.\n` +
+          `Example: "PO status US164932"\n` +
+          `Or: "Show open purchase orders"`
+        );
+      }
+
+    // APPROVE PO
+    } else if (lower.startsWith('approve ')) {
+      const poNumber = text.split(' ')[1]?.toUpperCase();
+      if (poNumber) {
+        const session = whatsappSessions?.[from];
+        const poData = session?.pendingPO;
+
+        if (poData && poData.OrderNumber === poNumber) {
+          await sendWhatsAppMessage(from, `⏳ Approving PO ${poNumber}...`);
+
+          try {
+            const https = require('https');
+            const agent = new https.Agent({ rejectUnauthorized: false });
+
+            await axios.post(
+              `${process.env.ORACLE_BASE_URL}/fscmRestApi/resources/11.13.18.05/purchaseOrders/${poData.POHeaderId}/action/submit`,
+              { comments: 'Approved via WhatsApp Voice Assistant' },
+              {
+                httpsAgent: agent,
+                headers: {
+                  'Authorization': process.env.ORACLE_AUTH,
+                  'Content-Type': 'application/json'
+                }
+              }
+            );
+
+            await sendWhatsAppMessage(from, `✅ PO ${poNumber} approved successfully in Oracle Fusion!`);
+            delete whatsappSessions[from];
+          } catch (err) {
+            if (err.response?.status === 403) {
+              await sendWhatsAppMessage(from,
+                `❌ You don't have permission to approve PO ${poNumber}.\n` +
+                `Please contact your Oracle administrator.`
+              );
+            } else {
+              await sendWhatsAppMessage(from, `❌ Failed to approve PO ${poNumber}. Please try again.`);
+            }
+          }
+        } else {
+          await sendWhatsAppMessage(from,
+            `Please check PO details first.\n` +
+            `Reply: "PO status ${poNumber}"`
+          );
+        }
+      }
+
     // UNKNOWN COMMAND  
     } else {
       await sendWhatsAppMessage(from,
@@ -2002,6 +2222,99 @@ async function handleWhatsAppVoice(from, audioId) {
       '❌ Could not process voice note.\n' +
       'Please try sending a text message instead.'
     );
+  }
+}
+
+// ─── WHATSAPP PO HANDLERS ─────────────────────────────
+async function handleWhatsAppPO(from, poNumber) {
+  try {
+    const https = require('https');
+    const agent = new https.Agent({ rejectUnauthorized: false });
+    const oracleBaseUrl = process.env.ORACLE_BASE_URL;
+    const oracleAuth = process.env.ORACLE_AUTH;
+
+    const url = `${oracleBaseUrl}/fscmRestApi/resources/11.13.18.05/purchaseOrders?q=OrderNumber%3D%27${poNumber}%27&fields=OrderNumber,Status,Total,Supplier,CreationDate,CurrencyCode,POHeaderId,StatusCode`;
+
+    const response = await axios.get(url, {
+      httpsAgent: agent,
+      headers: { 'Authorization': oracleAuth }
+    });
+
+    if (!response.data.items?.length) {
+      await sendWhatsAppMessage(from, `❌ PO Number ${poNumber} not found in Oracle.`);
+      return;
+    }
+
+    const po = response.data.items[0];
+    const canApprove = po.StatusCode === 'OPEN' || po.StatusCode === 'PENDING_APPROVAL';
+
+    await sendWhatsAppMessage(from,
+      `📄 *Purchase Order Details*\n\n` +
+      `PO Number: ${po.OrderNumber}\n` +
+      `Status: ${po.Status}\n` +
+      `Supplier: ${po.Supplier || 'N/A'}\n` +
+      `Total: ${po.CurrencyCode} ${po.Total || '0'}\n` +
+      `Created: ${po.CreationDate?.split('T')[0] || 'N/A'}\n` +
+      `Business Unit: ${po.ProcurementBU || 'N/A'}\n\n` +
+      `${canApprove ? 
+        '⚠️ This PO is pending approval.\n' +
+        'Reply: *approve ' + po.OrderNumber + '* to approve it.' 
+        : 
+        '✅ No action required.'}`
+    );
+
+    // Store PO for approval
+    if (canApprove) {
+      whatsappSessions[from] = {
+        pendingPO: {
+          POHeaderId: po.POHeaderId,
+          OrderNumber: po.OrderNumber
+        }
+      };
+    }
+
+  } catch (err) {
+    console.error('WhatsApp PO error:', err.message);
+    await sendWhatsAppMessage(from, '❌ Error fetching PO details. Please try again.');
+  }
+}
+
+async function handleWhatsAppPOList(from) {
+  try {
+    const https = require('https');
+    const agent = new https.Agent({ rejectUnauthorized: false });
+    const oracleBaseUrl = process.env.ORACLE_BASE_URL;
+    const oracleAuth = process.env.ORACLE_AUTH;
+
+    const url = `${oracleBaseUrl}/fscmRestApi/resources/11.13.18.05/purchaseOrders?q=StatusCode%3D%27OPEN%27&limit=10&fields=OrderNumber,Status,Total,Supplier,CurrencyCode`;
+
+    const response = await axios.get(url, {
+      httpsAgent: agent,
+      headers: { 'Authorization': oracleAuth }
+    });
+
+    const pos = response.data.items || [];
+
+    if (!pos.length) {
+      await sendWhatsAppMessage(from, '✅ No open purchase orders found.');
+      return;
+    }
+
+    let message = `📋 *Open Purchase Orders (${pos.length})*\n\n`;
+    pos.forEach((po, i) => {
+      message += `${i + 1}. *${po.OrderNumber}*\n`;
+      message += `   Supplier: ${po.Supplier || 'N/A'}\n`;
+      message += `   Amount: ${po.CurrencyCode} ${po.Total || '0'}\n`;
+      message += `   Status: ${po.Status}\n\n`;
+    });
+
+    message += `To check details, reply:\n"PO status <order_number>"`;
+
+    await sendWhatsAppMessage(from, message);
+
+  } catch (err) {
+    console.error('WhatsApp PO list error:', err.message);
+    await sendWhatsAppMessage(from, '❌ Error fetching PO list. Please try again.');
   }
 }
 
