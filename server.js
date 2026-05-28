@@ -1881,7 +1881,7 @@ async function handleWhatsAppText(from, text) {
       }
       
     // GET EMPLOYEE DETAILS
-    } else if (lower.includes('detail') || lower.includes('profile') || lower.includes('info') || lower.includes('show')) {
+    } else if ((lower.includes('detail') || lower.includes('profile') || lower.includes('info') || lower.includes('show')) && !lower.includes('po') && !lower.includes('purchase order') && !lower.includes('order status')) {
       const personMatch = text.match(/(?:person|employee|number|no|id)\s*(\d{1,6})/i);
       const personNumber = personMatch ? personMatch[1] : (numbers.length > 0 ? numbers[0] : null);
       
@@ -2079,7 +2079,7 @@ async function handleWhatsAppText(from, text) {
       }
       
     // PO COMMANDS
-    } else if (lower.includes('po') || lower.includes('purchase order') || lower.includes('order status')) {
+    } else if (lower.includes('po') || lower.includes('purchase order') || lower.includes('order status') || /[a-z]{2}\d{6}/i.test(lower) || /po[-\s]?\d+/i.test(lower)) {
       const poMatch = text.match(/[A-Z]{2}\d{6}/i) || text.match(/PO[-\s]?\d+/i);
       const poNumber = poMatch ? poMatch[0].replace(/[-\s]/g, '').toUpperCase() : null;
 
