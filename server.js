@@ -2078,25 +2078,6 @@ async function handleWhatsAppText(from, text) {
         );
       }
       
-    // PO COMMANDS
-    } else if (lower.includes('po') || lower.includes('purchase order') || lower.includes('order status') || /[a-z]{2}\d{6}/i.test(lower) || /po[-\s]?\d+/i.test(lower)) {
-      const poMatch = text.match(/[A-Z]{2}\d{6}/i) || text.match(/PO[-\s]?\d+/i);
-      const poNumber = poMatch ? poMatch[0].replace(/[-\s]/g, '').toUpperCase() : null;
-
-      if (poNumber) {
-        await sendWhatsAppMessage(from, `🔍 Looking up PO: ${poNumber}...`);
-        await handleWhatsAppPO(from, poNumber);
-      } else if (lower.includes('list') || lower.includes('pending') || lower.includes('open')) {
-        await sendWhatsAppMessage(from, `📋 Fetching open purchase orders...`);
-        await handleWhatsAppPOList(from);
-      } else {
-        await sendWhatsAppMessage(from,
-          `Please provide a PO number.\n` +
-          `Example: "PO status US164932"\n` +
-          `Or: "Show open purchase orders"`
-        );
-      }
-
     // APPROVE PO
     } else if (lower.startsWith('approve ')) {
       const poNumber = text.split(' ')[1]?.toUpperCase();
@@ -2141,6 +2122,25 @@ async function handleWhatsAppText(from, text) {
             `Reply: "PO status ${poNumber}"`
           );
         }
+      }
+
+    // PO COMMANDS
+    } else if (lower.includes('po') || lower.includes('purchase order') || lower.includes('order status') || /[a-z]{2}\d{6}/i.test(lower) || /po[-\s]?\d+/i.test(lower)) {
+      const poMatch = text.match(/[A-Z]{2}\d{6}/i) || text.match(/PO[-\s]?\d+/i);
+      const poNumber = poMatch ? poMatch[0].replace(/[-\s]/g, '').toUpperCase() : null;
+
+      if (poNumber) {
+        await sendWhatsAppMessage(from, `🔍 Looking up PO: ${poNumber}...`);
+        await handleWhatsAppPO(from, poNumber);
+      } else if (lower.includes('list') || lower.includes('pending') || lower.includes('open')) {
+        await sendWhatsAppMessage(from, `📋 Fetching open purchase orders...`);
+        await handleWhatsAppPOList(from);
+      } else {
+        await sendWhatsAppMessage(from,
+          `Please provide a PO number.\n` +
+          `Example: "PO status US164932"\n` +
+          `Or: "Show open purchase orders"`
+        );
       }
 
     // UNKNOWN COMMAND  
