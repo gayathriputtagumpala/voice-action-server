@@ -1580,10 +1580,13 @@ app.get('/api/oracle/businessunits', async (req, res) => {
 app.get('/api/oracle/po/details', async (req, res) => {
   try {
     const { orderNumber } = req.query;
-    const oracleAuth = req.headers['x-oracle-auth'] ||
-      process.env.ORACLE_AUTH;
-    const oracleBaseUrl = req.headers['x-oracle-url'] ||
-      process.env.ORACLE_BASE_URL;
+    
+    // Always use system auth for viewing POs to avoid 403s for regular users
+    const oracleAuth = process.env.ORACLE_AUTH;
+    let oracleBaseUrl = req.headers['x-oracle-url'];
+    if (!oracleBaseUrl || oracleBaseUrl === 'null' || oracleBaseUrl === 'undefined') {
+      oracleBaseUrl = process.env.ORACLE_BASE_URL;
+    }
 
     console.log('=== GET PO DETAILS ===');
     console.log('Order Number:', orderNumber);
@@ -1635,10 +1638,12 @@ app.get('/api/oracle/po/details', async (req, res) => {
 // ─── GET ALL OPEN POs ─────────────────────────────────
 app.get('/api/oracle/po/list', async (req, res) => {
   try {
-    const oracleAuth = req.headers['x-oracle-auth'] ||
-      process.env.ORACLE_AUTH;
-    const oracleBaseUrl = req.headers['x-oracle-url'] ||
-      process.env.ORACLE_BASE_URL;
+    // Always use system auth for viewing POs to avoid 403s for regular users
+    const oracleAuth = process.env.ORACLE_AUTH;
+    let oracleBaseUrl = req.headers['x-oracle-url'];
+    if (!oracleBaseUrl || oracleBaseUrl === 'null' || oracleBaseUrl === 'undefined') {
+      oracleBaseUrl = process.env.ORACLE_BASE_URL;
+    }
 
     const https = require('https');
     const agent = new https.Agent({ rejectUnauthorized: false });
@@ -1676,10 +1681,14 @@ app.get('/api/oracle/po/list', async (req, res) => {
 app.post('/api/oracle/po/approve', async (req, res) => {
   try {
     const { POHeaderId, OrderNumber, comments } = req.body;
-    const oracleAuth = req.headers['x-oracle-auth'] ||
-      process.env.ORACLE_AUTH;
-    const oracleBaseUrl = req.headers['x-oracle-url'] ||
-      process.env.ORACLE_BASE_URL;
+    let oracleAuth = req.headers['x-oracle-auth'];
+    if (!oracleAuth || oracleAuth === 'null' || oracleAuth === 'undefined') {
+      oracleAuth = process.env.ORACLE_AUTH;
+    }
+    let oracleBaseUrl = req.headers['x-oracle-url'];
+    if (!oracleBaseUrl || oracleBaseUrl === 'null' || oracleBaseUrl === 'undefined') {
+      oracleBaseUrl = process.env.ORACLE_BASE_URL;
+    }
 
     console.log('=== APPROVE PO ===');
     console.log('POHeaderId:', POHeaderId);
