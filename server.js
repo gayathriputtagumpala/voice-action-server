@@ -2100,7 +2100,7 @@ async function handleWhatsAppText(from, text) {
       
     // APPROVE PO
     } else if (lower.includes('approve')) {
-      const poMatch = text.match(/[A-Z]{2}\d{6}/i) || text.match(/PO[-\s]?\d+/i);
+      const poMatch = text.match(/[A-Z]{2}\d{5,6}/i) || text.match(/\b\d{5,6}\b/);
       let poNumber = poMatch ? poMatch[0].replace(/[-\s]/g, '').toUpperCase() : null;
 
       const session = whatsappSessions?.[from];
@@ -2176,8 +2176,8 @@ async function handleWhatsAppText(from, text) {
       }
 
     // PO COMMANDS
-    } else if (lower.includes('po') || lower.includes('purchase order') || lower.includes('order status') || /[a-z]{2}\d{6}/i.test(lower) || /po[-\s]?\d+/i.test(lower)) {
-      const poMatch = text.match(/[A-Z]{2}\d{6}/i) || text.match(/PO[-\s]?\d+/i);
+    } else if (lower.includes('po') || lower.includes('purchase order') || lower.includes('order status') || /[a-z]{2}\d{5,6}/i.test(lower) || /po[-\s]?\d+/i.test(lower) || /\b\d{5,6}\b/.test(lower)) {
+      const poMatch = text.match(/[A-Z]{2}\d{5,6}/i) || text.match(/\b\d{5,6}\b/);
       const poNumber = poMatch ? poMatch[0].replace(/[-\s]/g, '').toUpperCase() : null;
 
       if (poNumber) {
