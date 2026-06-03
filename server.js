@@ -2120,11 +2120,12 @@ async function handleWhatsAppText(from, text) {
           const oracleAuth = process.env.ORACLE_AUTH;
 
           let poHeaderId = poData?.OrderNumber === poNumber ? poData.POHeaderId : null;
+          let statusCode = poData?.OrderNumber === poNumber ? poData.StatusCode : null;
 
-          // If we don't have the POHeaderId in session, look it up first!
-          if (!poHeaderId) {
-            console.log(`POHeaderId not in session for PO ${poNumber}. Looking up from Oracle...`);
-            const lookupUrl = `${oracleBaseUrl}/fscmRestApi/resources/11.13.18.05/purchaseOrders?q=OrderNumber%3D%27${poNumber}%27&fields=POHeaderId`;
+          // If we don't have the POHeaderId or StatusCode in session, look it up first!
+          if (!poHeaderId || !statusCode) {
+            console.log(`PO details not in session for PO ${poNumber}. Looking up from Oracle...`);
+            const lookupUrl = `${oracleBaseUrl}/fscmRestApi/resources/11.13.18.05/purchaseOrders?q=OrderNumber%3D%27${poNumber}%27&fields=POHeaderId,StatusCode`;
             const lookupRes = await axios.get(lookupUrl, {
               httpsAgent: agent,
               headers: { 'Authorization': oracleAuth }
@@ -2135,6 +2136,13 @@ async function handleWhatsAppText(from, text) {
               return;
             }
             poHeaderId = poItem.POHeaderId;
+            statusCode = poItem.StatusCode;
+          }
+
+          // Check if PO is already approved!
+          if (statusCode === 'OPEN') {
+            await sendWhatsAppMessage(from, `✅ PO ${poNumber} is already approved and active.`);
+            return;
           }
 
           // Submit the approval action
