@@ -490,7 +490,7 @@ app.get('/api/oracle/manager', async (req, res) => {
   }
   const manager_person_number = req.query.manager_person_number?.toString().trim();
   try {
-    const url = `${oracleBaseUrl || 'https://fa-euth-dev58-saasfademo1.ds-fa.oraclepdemos.com'}/hcmRestApi/resources/11.13.18.05/workers?q=PersonNumber%3D${manager_person_number}&expand=workRelationships.assignments`;
+    const url = `${oracleBaseUrl || 'https://dabiqy.ds-fa.oraclepdemos.com'}/hcmRestApi/resources/11.13.18.05/workers?q=PersonNumber%3D${manager_person_number}&expand=workRelationships.assignments`;
     
     const https = require('https');
     const agent = new https.Agent({ rejectUnauthorized: false });
@@ -2343,8 +2343,8 @@ async function processAssignManager(from, employeeNum, managerNum) {
   try {
     const https = require('https');
     const agent = new https.Agent({ rejectUnauthorized: false });
-    const baseUrl = (process.env.ORACLE_BASE_URL || 'https://fa-eubg-test-saasfademo1.ds-fa.oraclepdemos.com').replace(/\/$/, '');
-    const auth = process.env.ORACLE_AUTH || 'Basic dXNlcl9yMTNfYTJmOkQ/Nj82dXVD';
+    const baseUrl = (process.env.ORACLE_BASE_URL || 'https://dabiqy.ds-fa.oraclepdemos.com').replace(/\/$/, '');
+    const auth = process.env.ORACLE_AUTH || 'Basic dXNlcl9yMTNfYTJmOlRxJUw3XjNt';
 
     // Step 1: Get worker details
     const workerRes = await axios.get(
@@ -2423,8 +2423,8 @@ async function processChangeDepartment(from, employeeNum, deptName) {
   try {
     const https = require('https');
     const agent = new https.Agent({ rejectUnauthorized: false });
-    const baseUrl = (process.env.ORACLE_BASE_URL || 'https://fa-eubg-test-saasfademo1.ds-fa.oraclepdemos.com').replace(/\/$/, '');
-    const auth = process.env.ORACLE_AUTH || 'Basic dXNlcl9yMTNfYTJmOkQ/Nj82dXVD';
+    const baseUrl = (process.env.ORACLE_BASE_URL || 'https://dabiqy.ds-fa.oraclepdemos.com').replace(/\/$/, '');
+    const auth = process.env.ORACLE_AUTH || 'Basic dXNlcl9yMTNfYTJmOlRxJUw3XjNt';
 
     // Get worker details
     const workerRes = await axios.get(
@@ -2542,8 +2542,8 @@ async function processChangeLocation(from, employeeNum, locName) {
   try {
     const https = require('https');
     const agent = new https.Agent({ rejectUnauthorized: false });
-    const baseUrl = (process.env.ORACLE_BASE_URL || 'https://fa-eubg-test-saasfademo1.ds-fa.oraclepdemos.com').replace(/\/$/, '');
-    const auth = process.env.ORACLE_AUTH || 'Basic dXNlcl9yMTNfYTJmOkQ/Nj82dXVD';
+    const baseUrl = (process.env.ORACLE_BASE_URL || 'https://dabiqy.ds-fa.oraclepdemos.com').replace(/\/$/, '');
+    const auth = process.env.ORACLE_AUTH || 'Basic dXNlcl9yMTNfYTJmOlRxJUw3XjNt';
 
     // Get worker details
     const workerRes = await axios.get(
@@ -2648,8 +2648,8 @@ async function processChangeJob(from, employeeNum, jobName) {
   try {
     const https = require('https');
     const agent = new https.Agent({ rejectUnauthorized: false });
-    const baseUrl = (process.env.ORACLE_BASE_URL || 'https://fa-eubg-test-saasfademo1.ds-fa.oraclepdemos.com').replace(/\/$/, '');
-    const auth = process.env.ORACLE_AUTH || 'Basic dXNlcl9yMTNfYTJmOkQ/Nj82dXVD';
+    const baseUrl = (process.env.ORACLE_BASE_URL || 'https://dabiqy.ds-fa.oraclepdemos.com').replace(/\/$/, '');
+    const auth = process.env.ORACLE_AUTH || 'Basic dXNlcl9yMTNfYTJmOlRxJUw3XjNt';
 
     const workerRes = await axios.get(
       `${baseUrl}/hcmRestApi/resources/11.13.18.05/workers?q=PersonNumber%3D${employeeNum}&expand=workRelationships.assignments`,
@@ -2752,8 +2752,8 @@ async function processChangePosition(from, employeeNum, posName) {
   try {
     const https = require('https');
     const agent = new https.Agent({ rejectUnauthorized: false });
-    const baseUrl = (process.env.ORACLE_BASE_URL || 'https://fa-eubg-test-saasfademo1.ds-fa.oraclepdemos.com').replace(/\/$/, '');
-    const auth = process.env.ORACLE_AUTH || 'Basic dXNlcl9yMTNfYTJmOkQ/Nj82dXVD';
+    const baseUrl = (process.env.ORACLE_BASE_URL || 'https://dabiqy.ds-fa.oraclepdemos.com').replace(/\/$/, '');
+    const auth = process.env.ORACLE_AUTH || 'Basic dXNlcl9yMTNfYTJmOlRxJUw3XjNt';
 
     const workerRes = await axios.get(
       `${baseUrl}/hcmRestApi/resources/11.13.18.05/workers?q=PersonNumber%3D${employeeNum}&expand=workRelationships.assignments`,
@@ -2856,8 +2856,8 @@ async function processChangeGrade(from, employeeNum, gradeName) {
   try {
     const https = require('https');
     const agent = new https.Agent({ rejectUnauthorized: false });
-    const baseUrl = (process.env.ORACLE_BASE_URL || 'https://fa-eubg-test-saasfademo1.ds-fa.oraclepdemos.com').replace(/\/$/, '');
-    const auth = process.env.ORACLE_AUTH || 'Basic dXNlcl9yMTNfYTJmOkQ/Nj82dXVD';
+    const baseUrl = (process.env.ORACLE_BASE_URL || 'https://dabiqy.ds-fa.oraclepdemos.com').replace(/\/$/, '');
+    const auth = process.env.ORACLE_AUTH || 'Basic dXNlcl9yMTNfYTJmOlRxJUw3XjNt';
 
     const workerRes = await axios.get(
       `${baseUrl}/hcmRestApi/resources/11.13.18.05/workers?q=PersonNumber%3D${employeeNum}&expand=workRelationships.assignments`,
@@ -2960,8 +2960,8 @@ async function processChangeBusinessUnit(from, employeeNum, buName) {
   try {
     const https = require('https');
     const agent = new https.Agent({ rejectUnauthorized: false });
-    const baseUrl = (process.env.ORACLE_BASE_URL || 'https://fa-eubg-test-saasfademo1.ds-fa.oraclepdemos.com').replace(/\/$/, '');
-    const auth = process.env.ORACLE_AUTH || 'Basic dXNlcl9yMTNfYTJmOkQ/Nj82dXVD';
+    const baseUrl = (process.env.ORACLE_BASE_URL || 'https://dabiqy.ds-fa.oraclepdemos.com').replace(/\/$/, '');
+    const auth = process.env.ORACLE_AUTH || 'Basic dXNlcl9yMTNfYTJmOlRxJUw3XjNt';
 
     const workerRes = await axios.get(
       `${baseUrl}/hcmRestApi/resources/11.13.18.05/workers?q=PersonNumber%3D${employeeNum}&expand=workRelationships.assignments`,
@@ -3064,8 +3064,8 @@ async function processHireEmployee(from, details) {
   try {
     const https = require('https');
     const agent = new https.Agent({ rejectUnauthorized: false });
-    const baseUrl = (process.env.ORACLE_BASE_URL || 'https://fa-eubg-test-saasfademo1.ds-fa.oraclepdemos.com').replace(/\/$/, '');
-    const auth = process.env.ORACLE_AUTH || 'Basic dXNlcl9yMTNfYTJmOkQ/Nj82dXVD';
+    const baseUrl = (process.env.ORACLE_BASE_URL || 'https://dabiqy.ds-fa.oraclepdemos.com').replace(/\/$/, '');
+    const auth = process.env.ORACLE_AUTH || 'Basic dXNlcl9yMTNfYTJmOlRxJUw3XjNt';
 
     const today = new Date().toISOString().split('T')[0];
     const url = `${baseUrl}/hcmRestApi/resources/latest/workers`;
@@ -3132,7 +3132,7 @@ async function processHireEmployee(from, details) {
 async function processGetEmployeeDetails(from, personNumber) {
   try {
     const oracleAuth = process.env.ORACLE_AUTH;
-    const oracleBaseUrl = process.env.ORACLE_BASE_URL || 'https://fa-euth-dev58-saasfademo1.ds-fa.oraclepdemos.com';
+    const oracleBaseUrl = process.env.ORACLE_BASE_URL || 'https://dabiqy.ds-fa.oraclepdemos.com';
     const baseUrl = oracleBaseUrl.replace(/\/$/, '');
     
     const https = require('https');
