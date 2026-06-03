@@ -77,14 +77,22 @@ app.post('/api/auth/verify', async (req, res) => {
   try {
     const { oracleUrl, username, password } = req.body;
     
-    if (!oracleUrl || !username || !password) {
+    const targetOracleUrl = oracleUrl || process.env.ORACLE_BASE_URL;
+    
+    if (!username || !password) {
       return res.status(400).json({ 
-        error: 'Oracle URL, username and password required' 
+        error: 'Oracle username and password required' 
+      });
+    }
+    
+    if (!targetOracleUrl) {
+      return res.status(400).json({ 
+        error: 'Oracle URL is not configured on server and must be provided' 
       });
     }
     
     // Clean the URL
-    const cleanUrl = oracleUrl.replace(/\/$/, '');
+    const cleanUrl = targetOracleUrl.replace(/\/$/, '');
     
     console.log('Verifying Oracle credentials for:', username);
     console.log('Oracle URL:', cleanUrl);
