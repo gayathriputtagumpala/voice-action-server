@@ -3,7 +3,7 @@ const cors = require('cors');
 const multer = require('multer');
 const axios = require('axios');
 const FormData = require('form-data');
-require('dotenv').config();
+require('dotenv').config({ override: true });
 
 let whatsappSessions = {};
 
