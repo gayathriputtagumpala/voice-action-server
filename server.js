@@ -133,11 +133,14 @@ app.post('/api/auth/verify', async (req, res) => {
     }
     
   } catch (err) {
-    console.error('Auth verify error:', err.response?.status);
+    const testedUrl = err.config?.url || (targetOracleUrl + '/hcmRestApi/resources/11.13.18.05/');
+    console.error('Auth verify error status:', err.response?.status);
+    console.error('Auth verify error message:', err.message);
+    console.error('Tested URL:', testedUrl);
     
     if (err.response?.status === 401) {
       res.status(401).json({ 
-        error: 'Invalid Oracle username or password' 
+        error: `Invalid Oracle username or password (tested URL: ${testedUrl})` 
       });
     } else if (err.response?.status === 403) {
       // 403 Forbidden means credentials are correct, but the user lacks permissions to some catalog components.
@@ -151,20 +154,20 @@ app.post('/api/auth/verify', async (req, res) => {
       });
     } else if (err.response?.status === 503) {
       res.status(503).json({ 
-        error: 'Oracle Environment is currently down for scheduled maintenance. Please try again later.' 
+        error: `Oracle Environment is currently down for scheduled maintenance (tested URL: ${testedUrl})` 
       });
     } else if (err.code === 'ENOTFOUND' || 
                err.code === 'ECONNREFUSED') {
       res.status(400).json({ 
-        error: 'Cannot connect to Oracle URL. Please check the URL.' 
+        error: `Cannot connect to Oracle URL. Please check the URL: ${testedUrl}` 
       });
     } else if (err.code === 'ETIMEDOUT') {
       res.status(400).json({ 
-        error: 'Connection timeout. Please check Oracle URL.' 
+        error: `Connection timeout. Please check Oracle URL: ${testedUrl}` 
       });
     } else {
       res.status(500).json({ 
-        error: 'Verification failed. Please try again.' 
+        error: `Verification failed. Please try again. Status: ${err.response?.status || 'Unknown'} (tested URL: ${testedUrl})` 
       });
     }
   }
