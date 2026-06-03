@@ -2183,9 +2183,20 @@ async function handleWhatsAppText(from, text) {
       if (poNumber) {
         await sendWhatsAppMessage(from, `🔍 Looking up PO: ${poNumber}...`);
         await handleWhatsAppPO(from, poNumber);
-      } else if (lower.includes('list') || lower.includes('pending') || lower.includes('open')) {
-        await sendWhatsAppMessage(from, `📋 Fetching open purchase orders...`);
-        await handleWhatsAppPOList(from);
+      } else if (lower.includes('list') || lower.includes('pending') || lower.includes('open') || lower.includes('incomplete') || lower.includes('draft')) {
+        let status = 'OPEN';
+        let statusLabel = 'Open';
+
+        if (lower.includes('pending') || lower.includes('approval')) {
+          status = 'PENDING_APPROVAL';
+          statusLabel = 'Pending Approval';
+        } else if (lower.includes('incomplete') || lower.includes('draft')) {
+          status = 'INCOMPLETE';
+          statusLabel = 'Incomplete';
+        }
+
+        await sendWhatsAppMessage(from, `📋 Fetching ${statusLabel.toLowerCase()} purchase orders...`);
+        await handleWhatsAppPOList(from, status, statusLabel);
       } else {
         await sendWhatsAppMessage(from,
           `Please provide a PO number.\n` +
@@ -2332,14 +2343,14 @@ async function handleWhatsAppPO(from, poNumber) {
   }
 }
 
-async function handleWhatsAppPOList(from) {
+async function handleWhatsAppPOList(from, status = 'OPEN', statusLabel = 'Open') {
   try {
     const https = require('https');
     const agent = new https.Agent({ rejectUnauthorized: false });
     const oracleBaseUrl = process.env.ORACLE_BASE_URL;
     const oracleAuth = process.env.ORACLE_AUTH;
 
-    const url = `${oracleBaseUrl}/fscmRestApi/resources/11.13.18.05/purchaseOrders?q=StatusCode%3D%27OPEN%27&limit=10&fields=OrderNumber,Status,Total,Supplier,CurrencyCode`;
+    const url = `${oracleBaseUrl}/fscmRestApi/resources/11.13.18.05/purchaseOrders?q=StatusCode%3D%27${status}%27&limit=10&fields=OrderNumber,Status,Total,Supplier,CurrencyCode`;
 
     const response = await axios.get(url, {
       httpsAgent: agent,
@@ -2349,11 +2360,11 @@ async function handleWhatsAppPOList(from) {
     const pos = response.data.items || [];
 
     if (!pos.length) {
-      await sendWhatsAppMessage(from, '✅ No open purchase orders found.');
+      await sendWhatsAppMessage(from, `✅ No ${statusLabel.toLowerCase()} purchase orders found.`);
       return;
     }
 
-    let message = `📋 *Open Purchase Orders (${pos.length})*\n\n`;
+    let message = `📋 *${statusLabel} Purchase Orders (${pos.length})*\n\n`;
     pos.forEach((po, i) => {
       message += `${i + 1}. *${po.OrderNumber}*\n`;
       message += `   Supplier: ${po.Supplier || 'N/A'}\n`;
@@ -2367,7 +2378,7 @@ async function handleWhatsAppPOList(from) {
 
   } catch (err) {
     console.error('WhatsApp PO list error:', err.message);
-    await sendWhatsAppMessage(from, '❌ Error fetching PO list. Please try again.');
+    await sendWhatsAppMessage(from, `❌ Error fetching ${statusLabel.toLowerCase()} PO list. Please try again.`);
   }
 }
 
