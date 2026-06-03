@@ -2358,14 +2358,29 @@ async function handleWhatsAppPOList(from, status = 'OPEN', statusLabel = 'Open')
     const oracleBaseUrl = process.env.ORACLE_BASE_URL;
     const oracleAuth = process.env.ORACLE_AUTH;
 
-    const url = `${oracleBaseUrl}/fscmRestApi/resources/11.13.18.05/purchaseOrders?q=StatusCode%3D%27${status}%27&limit=10&fields=OrderNumber,Status,Total,Supplier,CurrencyCode`;
+    let pos = [];
 
-    const response = await axios.get(url, {
-      httpsAgent: agent,
-      headers: { 'Authorization': oracleAuth }
-    });
+    if (status === 'PENDING_APPROVAL') {
+      const urlPending = `${oracleBaseUrl}/fscmRestApi/resources/11.13.18.05/purchaseOrders?q=StatusCode%3D%27PENDING_APPROVAL%27&limit=10&fields=OrderNumber,Status,Total,Supplier,CurrencyCode`;
+      const urlIncomplete = `${oracleBaseUrl}/fscmRestApi/resources/11.13.18.05/purchaseOrders?q=StatusCode%3D%27INCOMPLETE%27&limit=10&fields=OrderNumber,Status,Total,Supplier,CurrencyCode`;
 
-    const pos = response.data.items || [];
+      const [resPending, resIncomplete] = await Promise.all([
+        axios.get(urlPending, { httpsAgent: agent, headers: { 'Authorization': oracleAuth } }).catch(() => ({ data: { items: [] } })),
+        axios.get(urlIncomplete, { httpsAgent: agent, headers: { 'Authorization': oracleAuth } }).catch(() => ({ data: { items: [] } }))
+      ]);
+
+      pos = [...(resPending.data.items || []), ...((resIncomplete.data.items || []).filter(item => {
+        // Avoid duplicate items if any
+        return !(resPending.data.items || []).some(p => p.OrderNumber === item.OrderNumber);
+      }))];
+    } else {
+      const url = `${oracleBaseUrl}/fscmRestApi/resources/11.13.18.05/purchaseOrders?q=StatusCode%3D%27${status}%27&limit=10&fields=OrderNumber,Status,Total,Supplier,CurrencyCode`;
+      const response = await axios.get(url, {
+        httpsAgent: agent,
+        headers: { 'Authorization': oracleAuth }
+      });
+      pos = response.data.items || [];
+    }
 
     if (!pos.length) {
       await sendWhatsAppMessage(from, `✅ No ${statusLabel.toLowerCase()} purchase orders found.`);
