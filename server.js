@@ -2297,7 +2297,7 @@ async function handleWhatsAppPO(from, poNumber) {
     }
 
     const po = response.data.items[0];
-    const canApprove = po.StatusCode === 'OPEN' || po.StatusCode === 'PENDING_APPROVAL';
+    const canApprove = po.StatusCode === 'PENDING_APPROVAL' || po.StatusCode === 'INCOMPLETE';
 
     await sendWhatsAppMessage(from,
       `📄 *Purchase Order Details*\n\n` +
@@ -2307,7 +2307,9 @@ async function handleWhatsAppPO(from, poNumber) {
       `Total: ${po.CurrencyCode} ${po.Total || '0'}\n` +
       `Created: ${po.CreationDate?.split('T')[0] || 'N/A'}\n` +
       `Business Unit: ${po.ProcurementBU || 'N/A'}\n\n` +
-      `${canApprove ? 
+      `${po.StatusCode === 'OPEN' ? 
+        '✅ This PO is already approved and active.' 
+        : canApprove ? 
         '⚠️ This PO is pending approval.\n' +
         'Reply: *approve ' + po.OrderNumber + '* to approve it.' 
         : 
