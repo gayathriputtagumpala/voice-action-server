@@ -2099,49 +2099,80 @@ async function handleWhatsAppText(from, text) {
       }
       
     // APPROVE PO
-    } else if (lower.startsWith('approve ')) {
-      const poNumber = text.split(' ')[1]?.toUpperCase();
+    } else if (lower.includes('approve')) {
+      const poMatch = text.match(/[A-Z]{2}\d{6}/i) || text.match(/PO[-\s]?\d+/i);
+      let poNumber = poMatch ? poMatch[0].replace(/[-\s]/g, '').toUpperCase() : null;
+
+      const session = whatsappSessions?.[from];
+      const poData = session?.pendingPO;
+
+      if (!poNumber && poData) {
+        poNumber = poData.OrderNumber;
+      }
+
       if (poNumber) {
-        const session = whatsappSessions?.[from];
-        const poData = session?.pendingPO;
+        await sendWhatsAppMessage(from, `⏳ Processing approval for PO ${poNumber}...`);
 
-        if (poData && poData.OrderNumber === poNumber) {
-          await sendWhatsAppMessage(from, `⏳ Approving PO ${poNumber}...`);
+        try {
+          const https = require('https');
+          const agent = new https.Agent({ rejectUnauthorized: false });
+          const oracleBaseUrl = process.env.ORACLE_BASE_URL;
+          const oracleAuth = process.env.ORACLE_AUTH;
 
-          try {
-            const https = require('https');
-            const agent = new https.Agent({ rejectUnauthorized: false });
+          let poHeaderId = poData?.OrderNumber === poNumber ? poData.POHeaderId : null;
 
-            await axios.post(
-              `${process.env.ORACLE_BASE_URL}/fscmRestApi/resources/11.13.18.05/purchaseOrders/${poData.POHeaderId}/action/submit`,
-              { comments: 'Approved via WhatsApp Voice Assistant' },
-              {
-                httpsAgent: agent,
-                headers: {
-                  'Authorization': process.env.ORACLE_AUTH,
-                  'Content-Type': 'application/json'
-                }
-              }
-            );
-
-            await sendWhatsAppMessage(from, `✅ PO ${poNumber} approved successfully in Oracle Fusion!`);
-            delete whatsappSessions[from];
-          } catch (err) {
-            if (err.response?.status === 403) {
-              await sendWhatsAppMessage(from,
-                `❌ You don't have permission to approve PO ${poNumber}.\n` +
-                `Please contact your Oracle administrator.`
-              );
-            } else {
-              await sendWhatsAppMessage(from, `❌ Failed to approve PO ${poNumber}. Please try again.`);
+          // If we don't have the POHeaderId in session, look it up first!
+          if (!poHeaderId) {
+            console.log(`POHeaderId not in session for PO ${poNumber}. Looking up from Oracle...`);
+            const lookupUrl = `${oracleBaseUrl}/fscmRestApi/resources/11.13.18.05/purchaseOrders?q=OrderNumber%3D%27${poNumber}%27&fields=POHeaderId`;
+            const lookupRes = await axios.get(lookupUrl, {
+              httpsAgent: agent,
+              headers: { 'Authorization': oracleAuth }
+            });
+            const poItem = lookupRes.data.items?.[0];
+            if (!poItem) {
+              await sendWhatsAppMessage(from, `❌ PO Number ${poNumber} not found in Oracle.`);
+              return;
             }
+            poHeaderId = poItem.POHeaderId;
           }
-        } else {
-          await sendWhatsAppMessage(from,
-            `Please check PO details first.\n` +
-            `Reply: "PO status ${poNumber}"`
+
+          // Submit the approval action
+          await axios.post(
+            `${oracleBaseUrl}/fscmRestApi/resources/11.13.18.05/purchaseOrders/${poHeaderId}/action/submit`,
+            { comments: 'Approved via WhatsApp Voice Assistant' },
+            {
+              httpsAgent: agent,
+              headers: {
+                'Authorization': oracleAuth,
+                'Content-Type': 'application/json'
+              }
+            }
           );
+
+          await sendWhatsAppMessage(from, `✅ PO ${poNumber} approved successfully in Oracle Fusion!`);
+          if (whatsappSessions[from]) {
+            delete whatsappSessions[from];
+          }
+        } catch (err) {
+          console.error('WhatsApp PO approval error:', err.message);
+          if (err.response) {
+            console.error('Response data:', err.response.data);
+          }
+          if (err.response?.status === 403) {
+            await sendWhatsAppMessage(from,
+              `❌ You don't have permission to approve PO ${poNumber}.\n` +
+              `Please contact your Oracle administrator.`
+            );
+          } else {
+            await sendWhatsAppMessage(from, `❌ Failed to approve PO ${poNumber}. Please try again.`);
+          }
         }
+      } else {
+        await sendWhatsAppMessage(from,
+          `Please specify which PO to approve.\n` +
+          `Example: "approve US165121"`
+        );
       }
 
     // PO COMMANDS
