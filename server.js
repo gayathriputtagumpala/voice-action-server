@@ -3385,8 +3385,8 @@ app.listen(port, () => {
 app.get('/api/oracle/leavebalance', async (req, res) => {
   try {
     const { personId } = req.query;
-    const absenceAuth = process.env.ABSENCE_ORACLE_AUTH || 'Basic dXNlcl9yMTNfYTJmOlRxJUw3XjNt';
-    const absenceUrl = process.env.ABSENCE_ORACLE_URL || 'https://dabiqy.ds-fa.oraclepdemos.com';
+    const absenceAuth = process.env.ORACLE_AUTH;
+    const absenceUrl = process.env.ORACLE_BASE_URL;
 
     console.log('=== GET LEAVE BALANCE ===');
     console.log('PersonId:', personId);
@@ -3421,8 +3421,8 @@ app.post('/api/oracle/applyleave', async (req, res) => {
       personId, legalEntityId, absenceTypeId, startDate, endDate, startTime, endTime
     } = req.body;
 
-    const absenceAuth = process.env.ABSENCE_ORACLE_AUTH || 'Basic dXNlcl9yMTNfYTJmOlRxJUw3XjNt';
-    const absenceUrl = process.env.ABSENCE_ORACLE_URL || 'https://dabiqy.ds-fa.oraclepdemos.com';
+    const absenceAuth = process.env.ORACLE_AUTH;
+    const absenceUrl = process.env.ORACLE_BASE_URL;
 
     console.log('=== APPLY LEAVE REQUEST ===');
     console.log('PersonId:', personId);
@@ -3473,8 +3473,8 @@ app.post('/api/oracle/applyleave', async (req, res) => {
 // GET Absence Types
 app.get('/api/oracle/absencetypes', async (req, res) => {
   try {
-    const absenceAuth = process.env.ABSENCE_ORACLE_AUTH || 'Basic dXNlcl9yMTNfYTJmOlRxJUw3XjNt';
-    const absenceUrl = process.env.ABSENCE_ORACLE_URL || 'https://dabiqy.ds-fa.oraclepdemos.com';
+    const absenceAuth = process.env.ORACLE_AUTH;
+    const absenceUrl = process.env.ORACLE_BASE_URL;
 
     const https = require('https');
     const agent = new https.Agent({ rejectUnauthorized: false });
@@ -3507,8 +3507,8 @@ async function processLeaveBalance(from, personNumber) {
   try {
     const https = require('https');
     const agent = new https.Agent({ rejectUnauthorized: false });
-    const absenceUrl = process.env.ABSENCE_ORACLE_URL || 'https://dabiqy.ds-fa.oraclepdemos.com';
-    const absenceAuth = process.env.ABSENCE_ORACLE_AUTH || 'Basic dXNlcl9yMTNfYTJmOlRxJUw3XjNt';
+    const absenceUrl = process.env.ORACLE_BASE_URL;
+    const absenceAuth = process.env.ORACLE_AUTH;
     const oracleUrl = process.env.ORACLE_BASE_URL;
     const oracleAuth = process.env.ORACLE_AUTH;
 
