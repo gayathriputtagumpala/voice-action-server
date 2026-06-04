@@ -3379,4 +3379,173 @@ async function sendWhatsAppMessage(to, message) {
 
 app.listen(port, () => {
   console.log(`Voice Action Server listening at http://localhost:${port}`);
-});
+});
+
+// GET Leave Balance
+app.get('/api/oracle/leavebalance', async (req, res) => {
+  try {
+    const { personId } = req.query;
+    const absenceAuth = process.env.ABSENCE_ORACLE_AUTH || 'Basic dXNlcl9yMTNfYTJmOlRxJUw3XjNt';
+    const absenceUrl = process.env.ABSENCE_ORACLE_URL || 'https://dabiqy.ds-fa.oraclepdemos.com';
+
+    console.log('=== GET LEAVE BALANCE ===');
+    console.log('PersonId:', personId);
+
+    const https = require('https');
+    const agent = new https.Agent({ rejectUnauthorized: false });
+
+    const url = `${absenceUrl}/hcmRestApi/resources/11.13.18.05/absences?q=personId=${personId}&onlyData=true`;
+
+    const response = await axios.get(url, {
+      httpsAgent: agent,
+      headers: {
+        'Authorization': absenceAuth,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    console.log('Leave balance response:', JSON.stringify(response.data));
+    res.json(response.data);
+
+  } catch (err) {
+    console.error('Leave balance error:', err.response?.status);
+    console.error('Leave balance data:', JSON.stringify(err.response?.data));
+    res.status(500).json({ error: err.response?.data?.detail || err.message });
+  }
+});
+
+// POST Apply Leave
+app.post('/api/oracle/applyleave', async (req, res) => {
+  try {
+    const {
+      personId, legalEntityId, absenceTypeId, startDate, endDate, startTime, endTime
+    } = req.body;
+
+    const absenceAuth = process.env.ABSENCE_ORACLE_AUTH || 'Basic dXNlcl9yMTNfYTJmOlRxJUw3XjNt';
+    const absenceUrl = process.env.ABSENCE_ORACLE_URL || 'https://dabiqy.ds-fa.oraclepdemos.com';
+
+    console.log('=== APPLY LEAVE REQUEST ===');
+    console.log('PersonId:', personId);
+    console.log('StartDate:', startDate);
+    console.log('EndDate:', endDate);
+    console.log('AbsenceTypeId:', absenceTypeId);
+
+    const https = require('https');
+    const agent = new https.Agent({ rejectUnauthorized: false });
+
+    const today = new Date().toISOString().split('T')[0];
+
+    const body = {
+      personId: Number(personId),
+      legalEntityId: Number(legalEntityId),
+      absenceTypeId: Number(absenceTypeId),
+      startDate: startDate,
+      endDate: endDate,
+      startTime: startTime || '08:30',
+      endTime: endTime || '17:30',
+      absenceStatusCd: 'SUBMITTED'
+    };
+
+    console.log('Apply leave body:', JSON.stringify(body));
+
+    const response = await axios.post(
+      `${absenceUrl}/hcmRestApi/resources/11.13.18.05/absences`,
+      body,
+      {
+        httpsAgent: agent,
+        headers: {
+          'Content-Type': 'application/vnd.oracle.adf.resourceitem+json',
+          'Authorization': absenceAuth,
+          'effective-Of': `RangeStartDate=${today};RangeMode=UPDATE`
+        }
+      }
+    );
+
+    console.log('Apply leave success:', response.status);
+    res.json({ success: true, message: 'Leave applied successfully!', data: response.data });
+
+  } catch (err) {
+    console.error('Apply leave error:', err.response?.status);
+    res.status(500).json({ error: err.response?.data?.detail || err.message });
+  }
+});
+
+// GET Absence Types
+app.get('/api/oracle/absencetypes', async (req, res) => {
+  try {
+    const absenceAuth = process.env.ABSENCE_ORACLE_AUTH || 'Basic dXNlcl9yMTNfYTJmOlRxJUw3XjNt';
+    const absenceUrl = process.env.ABSENCE_ORACLE_URL || 'https://dabiqy.ds-fa.oraclepdemos.com';
+
+    const https = require('https');
+    const agent = new https.Agent({ rejectUnauthorized: false });
+
+    const url = `${absenceUrl}/hcmRestApi/resources/11.13.18.05/absenceTypes?limit=50&fields=AbsenceTypeId,Name,UOMDescription&onlyData=true`;
+
+    const response = await axios.get(url, {
+      httpsAgent: agent,
+      headers: {
+        'Authorization': absenceAuth,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    const types = response.data.items?.map(t => ({
+      AbsenceTypeId: t.AbsenceTypeId,
+      Name: t.Name,
+      UOMDescription: t.UOMDescription
+    })) || [];
+
+    res.json({ types });
+
+  } catch (err) {
+    console.error('Absence types error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+async function processLeaveBalance(from, personNumber) {
+  try {
+    const https = require('https');
+    const agent = new https.Agent({ rejectUnauthorized: false });
+    const absenceUrl = process.env.ABSENCE_ORACLE_URL || 'https://dabiqy.ds-fa.oraclepdemos.com';
+    const absenceAuth = process.env.ABSENCE_ORACLE_AUTH || 'Basic dXNlcl9yMTNfYTJmOlRxJUw3XjNt';
+    const oracleUrl = process.env.ORACLE_BASE_URL;
+    const oracleAuth = process.env.ORACLE_AUTH;
+
+    const workerRes = await axios.get(
+      `${oracleUrl}/hcmRestApi/resources/11.13.18.05/workers?q=PersonNumber%3D${personNumber}&fields=PersonId,DisplayName`,
+      { httpsAgent: agent, headers: { 'Authorization': oracleAuth } }
+    );
+
+    if (!workerRes.data.items?.length) {
+      await sendWhatsAppMessage(from, `❌ Employee ${personNumber} not found.`);
+      return;
+    }
+
+    const worker = workerRes.data.items[0];
+    const personId = worker.PersonId;
+
+    const balanceRes = await axios.get(
+      `${absenceUrl}/hcmRestApi/resources/11.13.18.05/absences?q=personId=${personId}&onlyData=true`,
+      { httpsAgent: agent, headers: { 'Authorization': absenceAuth } }
+    );
+
+    const items = balanceRes.data.items || [];
+
+    if (items.length === 0) {
+      await sendWhatsAppMessage(from, `📊 *Leave Balance for ${worker.DisplayName}*\n\nNo leave records found.`);
+      return;
+    }
+
+    let message = `📊 *Leave Balance for ${worker.DisplayName}*\n\n`;
+    items.forEach(item => {
+      message += `• ${item.absenceTypeName || 'Leave'}: *${item.remainingEntitlement || item.balance || 'N/A'} days*\n`;
+    });
+
+    await sendWhatsAppMessage(from, message);
+
+  } catch (err) {
+    console.error('WhatsApp leave balance error:', err.message);
+    await sendWhatsAppMessage(from, `❌ Failed to fetch leave balance.\nPlease try again.`);
+  }
+}
