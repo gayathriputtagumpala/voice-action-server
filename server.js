@@ -3620,8 +3620,10 @@ async function processApplyLeave(from, personNumber, leaveType, startDate, endDa
     await sendWhatsAppMessage(from, `✅ Leave applied successfully for ${worker.DisplayName}!\nType: ${mappedAbsenceType}\nDates: ${startDate} to ${endDate}`);
 
   } catch (err) {
-    console.error('WhatsApp Apply Leave Error:', err.response?.data || err.message);
-    await sendWhatsAppMessage(from, `❌ Failed to apply leave: ${err.response?.data?.detail || err.message}`);
+    const errorData = err.response?.data;
+    const errorMsg = typeof errorData === 'string' ? errorData : (errorData?.detail || err.message);
+    console.error('WhatsApp Apply Leave Error:', errorData || err.message);
+    await sendWhatsAppMessage(from, `❌ Failed to apply leave:\n${errorMsg}`);
   }
 }
 
