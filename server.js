@@ -1945,6 +1945,37 @@ async function handleWhatsAppText(from, text) {
           `"check leave balance for employee 1405"`
         );
       }
+      
+    // PENDING LEAVE APPROVALS
+    } else if (lower.includes('pending approval') ||
+        lower.includes('pending leave') ||
+        lower.includes('leave approval') ||
+        lower.includes('any approval')) {
+
+      await sendWhatsAppMessage(from,
+        '⏳ Checking pending leave approvals...'
+      );
+      await processWhatsAppPendingLeaves(from);
+
+    // APPROVE LEAVE via WhatsApp
+    } else if (lower.includes('approve leave') && 
+               text.match(/\d+/)) {
+
+      const absenceId = text.match(/\d+/)?.[0];
+      await sendWhatsAppMessage(from,
+        `⏳ Approving leave request ${absenceId}...`
+      );
+      await processWhatsAppApproveLeave(from, absenceId, 'APPROVE');
+
+    // REJECT LEAVE via WhatsApp
+    } else if (lower.includes('reject leave') && 
+               text.match(/\d+/)) {
+
+      const absenceId = text.match(/\d+/)?.[0];
+      await sendWhatsAppMessage(from,
+        `⏳ Rejecting leave request ${absenceId}...`
+      );
+      await processWhatsAppApproveLeave(from, absenceId, 'REJECT');
 
     // GET EMPLOYEE DETAILS
     } else if ((lower.includes('detail') || lower.includes('profile') || lower.includes('info') || lower.includes('show')) && !lower.includes('po') && !lower.includes('purchase order') && !lower.includes('order status')) {
@@ -3556,6 +3587,107 @@ app.get('/api/oracle/absencetypes', async (req, res) => {
   }
 });
 
+// ─── GET PENDING LEAVE APPROVALS ─────────────────────
+app.get('/api/oracle/pendingleaves', async (req, res) => {
+  try {
+    const absenceAuth = process.env.ABSENCE_ORACLE_AUTH ||
+      'Basic dXNlcl9yMTNfYTJmOlRxJUw3XjNt';
+    const absenceUrl = process.env.ABSENCE_ORACLE_URL ||
+      'https://dabiqy.ds-fa.oraclepdemos.com';
+
+    const https = require('https');
+    const agent = new https.Agent({ rejectUnauthorized: false });
+
+    console.log('=== GET PENDING LEAVE APPROVALS ===');
+
+    const url = `${absenceUrl}/hcmRestApi/resources/11.13.18.05/absences?q=absenceStatusCd='SUBMITTED'&limit=20&onlyData=true`;
+
+    const response = await axios.get(url, {
+      httpsAgent: agent,
+      headers: {
+        'Authorization': absenceAuth,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    console.log('Pending leaves count:', 
+      response.data.items?.length);
+    console.log('First item:', 
+      JSON.stringify(response.data.items?.[0]));
+
+    const leaves = response.data.items || [];
+    res.json({ leaves, count: leaves.length });
+
+  } catch (err) {
+    console.error('Pending leaves error:', 
+      err.response?.status);
+    console.error('Pending leaves data:', 
+      JSON.stringify(err.response?.data));
+    res.status(500).json({
+      error: err.response?.data?.detail ||
+             err.message
+    });
+  }
+});
+
+// ─── APPROVE LEAVE ────────────────────────────────────
+app.patch('/api/oracle/approveleave', async (req, res) => {
+  try {
+    const { absenceId, action, comments } = req.body;
+    const absenceAuth = process.env.ABSENCE_ORACLE_AUTH ||
+      'Basic dXNlcl9yMTNfYTJmOlRxJUw3XjNt';
+    const absenceUrl = process.env.ABSENCE_ORACLE_URL ||
+      'https://dabiqy.ds-fa.oraclepdemos.com';
+
+    console.log('=== APPROVE/REJECT LEAVE ===');
+    console.log('AbsenceId:', absenceId);
+    console.log('Action:', action);
+
+    const https = require('https');
+    const agent = new https.Agent({ rejectUnauthorized: false });
+
+    const statusCode = action === 'APPROVE' 
+      ? 'APPROVED' : 'REJECTED';
+
+    const url = `${absenceUrl}/hcmRestApi/resources/11.13.18.05/absences/${absenceId}`;
+
+    const today = new Date().toISOString().split('T')[0];
+
+    const response = await axios.patch(url,
+      { absenceStatusCd: statusCode },
+      {
+        httpsAgent: agent,
+        headers: {
+          'Content-Type': 
+            'application/vnd.oracle.adf.resourceitem+json',
+          'Authorization': absenceAuth,
+          'effective-Of': 
+            `RangeStartDate=${today};RangeMode=UPDATE`
+        }
+      }
+    );
+
+    console.log('Leave approval success:', response.status);
+    res.json({
+      success: true,
+      message: `Leave ${statusCode.toLowerCase()} successfully!`,
+      status: statusCode
+    });
+
+  } catch (err) {
+    console.error('Approve leave error:', 
+      err.response?.status);
+    console.error('Approve leave data:', 
+      JSON.stringify(err.response?.data));
+    res.status(500).json({
+      error: err.response?.data?.detail ||
+             err.response?.data?.title ||
+             JSON.stringify(err.response?.data) ||
+             err.message
+    });
+  }
+});
+
 async function processApplyLeave(from, personNumber, leaveType, startDate, endDate) {
   try {
     const https = require('https');
@@ -3671,5 +3803,126 @@ async function processLeaveBalance(from, personNumber) {
   } catch (err) {
     console.error('WhatsApp leave balance error:', err.message);
     await sendWhatsAppMessage(from, `❌ Failed to fetch leave balance.\nPlease try again.`);
+  }
+}
+
+async function processWhatsAppPendingLeaves(from) {
+  try {
+    const https = require('https');
+    const agent = new https.Agent({ rejectUnauthorized: false });
+    const absenceUrl = process.env.ABSENCE_ORACLE_URL ||
+      'https://dabiqy.ds-fa.oraclepdemos.com';
+    const absenceAuth = process.env.ABSENCE_ORACLE_AUTH ||
+      'Basic dXNlcl9yMTNfYTJmOlRxJUw3XjNt';
+
+    const url = `${absenceUrl}/hcmRestApi/resources/11.13.18.05/absences?q=absenceStatusCd='SUBMITTED'&limit=10&onlyData=true`;
+
+    const response = await axios.get(url, {
+      httpsAgent: agent,
+      headers: { 'Authorization': absenceAuth }
+    });
+
+    const leaves = response.data.items || [];
+
+    if (leaves.length === 0) {
+      await sendWhatsAppMessage(from,
+        '✅ No pending leave approvals at this time.'
+      );
+      return;
+    }
+
+    let message = 
+      `📋 *Pending Leave Approvals* (${leaves.length})\n\n`;
+
+    leaves.forEach((leave, i) => {
+      const startDate = leave.startDate
+        ? new Date(leave.startDate)
+            .toLocaleDateString('en-IN')
+        : 'N/A';
+      const endDate = leave.endDate
+        ? new Date(leave.endDate)
+            .toLocaleDateString('en-IN')
+        : 'N/A';
+
+      message += `${i + 1}. *${
+        leave.personName || 
+        'Employee ' + leave.personId
+      }*\n`;
+      message += `   Type: ${
+        leave.absenceTypeName || 'Leave'
+      }\n`;
+      message += `   Dates: ${startDate} → ${endDate}\n`;
+      message += `   Duration: ${
+        leave.duration || 'N/A'
+      } ${leave.uom || 'Hours'}\n`;
+      message += `   ID: ${
+        leave.absenceId || 
+        leave.AbsenceEntryId || 'N/A'
+      }\n\n`;
+    });
+
+    message += `To approve: Reply *"approve leave [ID]"*\n`;
+    message += `To reject: Reply *"reject leave [ID]"*`;
+
+    await sendWhatsAppMessage(from, message);
+
+  } catch (err) {
+    console.error('WhatsApp pending leaves error:', 
+      err.message);
+    await sendWhatsAppMessage(from,
+      '❌ Failed to fetch pending approvals. Try again.'
+    );
+  }
+}
+
+async function processWhatsAppApproveLeave(
+  from, absenceId, action
+) {
+  try {
+    const https = require('https');
+    const agent = new https.Agent({ rejectUnauthorized: false });
+    const absenceUrl = process.env.ABSENCE_ORACLE_URL ||
+      'https://dabiqy.ds-fa.oraclepdemos.com';
+    const absenceAuth = process.env.ABSENCE_ORACLE_AUTH ||
+      'Basic dXNlcl9yMTNfYTJmOlRxJUw3XjNt';
+
+    const statusCode = action === 'APPROVE' 
+      ? 'APPROVED' : 'REJECTED';
+    const today = new Date().toISOString().split('T')[0];
+
+    const url = `${absenceUrl}/hcmRestApi/resources/11.13.18.05/absences/${absenceId}`;
+
+    await axios.patch(url,
+      { absenceStatusCd: statusCode },
+      {
+        httpsAgent: agent,
+        headers: {
+          'Content-Type': 
+            'application/vnd.oracle.adf.resourceitem+json',
+          'Authorization': absenceAuth,
+          'effective-Of': 
+            `RangeStartDate=${today};RangeMode=UPDATE`
+        }
+      }
+    );
+
+    const actionWord = action === 'APPROVE' 
+      ? 'approved ✅' : 'rejected ❌';
+
+    await sendWhatsAppMessage(from,
+      `*Leave Request ${actionWord}*\n\n` +
+      `Absence ID: ${absenceId}\n` +
+      `Status updated in Oracle Fusion successfully.`
+    );
+
+  } catch (err) {
+    console.error('WhatsApp approve leave error:', 
+      err.response?.data || err.message);
+    await sendWhatsAppMessage(from,
+      `❌ Failed to ${action.toLowerCase()} leave ${absenceId}.\n` +
+      `Error: ${
+        err.response?.data?.detail || err.message
+      }`
+    );
   }
 }
