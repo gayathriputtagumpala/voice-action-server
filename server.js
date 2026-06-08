@@ -1636,8 +1636,8 @@ app.get('/api/oracle/po/details', async (req, res) => {
       Supplier: po.Supplier,
       CreationDate: po.CreationDate,
       ProcurementBU: po.ProcurementBU,
-      canApprove: po.StatusCode === 'OPEN' || 
-                  po.StatusCode === 'PENDING_APPROVAL'
+      canApprove: po.StatusCode === 'PENDING_APPROVAL' || 
+                  po.StatusCode === 'INCOMPLETE'
     });
 
   } catch (err) {
@@ -1663,7 +1663,7 @@ app.get('/api/oracle/po/list', async (req, res) => {
     const https = require('https');
     const agent = new https.Agent({ rejectUnauthorized: false });
 
-    const url = `${oracleBaseUrl}/fscmRestApi/resources/11.13.18.05/purchaseOrders?q=StatusCode%3D%27OPEN%27&limit=20&fields=OrderNumber,Status,Total,Supplier,CurrencyCode,POHeaderId,StatusCode,CreationDate`;
+    const url = `${oracleBaseUrl}/fscmRestApi/resources/11.13.18.05/purchaseOrders?q=StatusCode%3D%27PENDING_APPROVAL%27&limit=20&fields=OrderNumber,Status,Total,Supplier,CurrencyCode,POHeaderId,StatusCode,CreationDate`;
 
     const response = await axios.get(url, {
       httpsAgent: agent,
