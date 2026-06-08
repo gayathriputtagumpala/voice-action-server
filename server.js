@@ -1841,6 +1841,9 @@ async function handleWhatsAppText(from, text) {
         `7️⃣ **Hire Employee:**\n` +
         `"hire employee [FirstName] [LastName] with person [PersonNumber], legal employer [EmployerName], business unit [BU_Name], job [JobCode], location [LocationCode]"\n` +
         `Example: hire employee John Doe with person 9988, legal employer US1 Legal Entity, business unit US1 Business Unit, job JOB018, location US East\n\n` +
+        `8️⃣ **Absence Module:**\n` +
+        `"check leave balance for employee [number]"\n` +
+        `"apply [sick/vacation] leave for employee [number] from YYYY-MM-DD to YYYY-MM-DD"\n\n` +
         `*Procurement Commands:*\n` +
         `📦 **PO Status:** "PO status US164932"\n` +
         `📋 **Open POs:** "Show open purchase orders"\n` +
@@ -1904,6 +1907,45 @@ async function handleWhatsAppText(from, text) {
         );
       }
       
+    // APPLY LEAVE
+    } else if (lower.includes('apply') && lower.includes('leave')) {
+      const personMatch = text.match(/(?:person|employee|number|no|id)\s*(\d{1,6})/i);
+      const personNumber = personMatch ? personMatch[1] : (numbers.length > 0 ? numbers[0] : null);
+
+      const typeMatch = text.match(/(sick|vacation|annual|casual)/i);
+      const leaveType = typeMatch ? typeMatch[1] : 'Vacation';
+
+      const dates = text.match(/\d{4}-\d{2}-\d{2}/g);
+      const startDate = dates && dates.length > 0 ? dates[0] : null;
+      const endDate = dates && dates.length > 1 ? dates[1] : startDate;
+
+      if (personNumber && startDate) {
+        await sendWhatsAppMessage(from, `⏳ Processing leave application for employee *${personNumber}*...`);
+        await processApplyLeave(from, personNumber, leaveType, startDate, endDate);
+      } else {
+        await sendWhatsAppMessage(from,
+          `❌ Please provide employee number and dates (YYYY-MM-DD).\n\n` +
+          `Example:\n` +
+          `"apply sick leave for employee 1405 from 2026-06-10 to 2026-06-12"`
+        );
+      }
+      
+    // LEAVE BALANCE
+    } else if (lower.includes('leave') && (lower.includes('balance') || lower.includes('check'))) {
+      const personMatch = text.match(/(?:person|employee|number|no|id)\s*(\d{1,6})/i);
+      const personNumber = personMatch ? personMatch[1] : (numbers.length > 0 ? numbers[0] : null);
+
+      if (personNumber) {
+        await sendWhatsAppMessage(from, `⏳ Checking leave balance for employee *${personNumber}*...`);
+        await processLeaveBalance(from, personNumber);
+      } else {
+        await sendWhatsAppMessage(from,
+          `❌ Please provide employee number.\n\n` +
+          `Example:\n` +
+          `"check leave balance for employee 1405"`
+        );
+      }
+
     // GET EMPLOYEE DETAILS
     } else if ((lower.includes('detail') || lower.includes('profile') || lower.includes('info') || lower.includes('show')) && !lower.includes('po') && !lower.includes('purchase order') && !lower.includes('order status')) {
       const personMatch = text.match(/(?:person|employee|number|no|id)\s*(\d{1,6})/i);
@@ -3513,6 +3555,75 @@ app.get('/api/oracle/absencetypes', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+async function processApplyLeave(from, personNumber, leaveType, startDate, endDate) {
+  try {
+    const https = require('https');
+    const agent = new https.Agent({ rejectUnauthorized: false });
+    const oracleUrl = process.env.ORACLE_BASE_URL;
+    const oracleAuth = process.env.ORACLE_AUTH;
+
+    const workerRes = await axios.get(
+      `${oracleUrl}/hcmRestApi/resources/11.13.18.05/workers?q=PersonNumber%3D${personNumber}&expand=workRelationships`,
+      { httpsAgent: agent, headers: { 'Authorization': oracleAuth } }
+    );
+
+    if (!workerRes.data.items?.length) {
+      await sendWhatsAppMessage(from, `❌ Employee ${personNumber} not found.`);
+      return;
+    }
+
+    const worker = workerRes.data.items[0];
+    const personId = worker.PersonId;
+    const workRel = worker.workRelationships?.[0];
+    const employer = workRel?.LegalEmployerName;
+
+    if (!employer) {
+      await sendWhatsAppMessage(from, `❌ Could not find Legal Employer for employee ${personNumber}.`);
+      return;
+    }
+
+    let mappedAbsenceType = leaveType;
+    if (mappedAbsenceType.toLowerCase().includes('casual') || mappedAbsenceType.toLowerCase().includes('annual')) {
+      mappedAbsenceType = 'Vacation';
+    } else if (mappedAbsenceType.toLowerCase().includes('sick')) {
+      mappedAbsenceType = 'Sick';
+    } else {
+      mappedAbsenceType = 'Vacation';
+    }
+
+    const today = new Date().toISOString().split('T')[0];
+    const body = {
+      personId: Number(personId),
+      employer: employer,
+      absenceType: mappedAbsenceType,
+      startDate: startDate,
+      endDate: endDate,
+      startTime: '08:30',
+      endTime: '17:30',
+      absenceStatusCd: 'SUBMITTED'
+    };
+
+    await axios.post(
+      `${oracleUrl}/hcmRestApi/resources/11.13.18.05/absences`,
+      body,
+      {
+        httpsAgent: agent,
+        headers: {
+          'Content-Type': 'application/vnd.oracle.adf.resourceitem+json',
+          'Authorization': oracleAuth,
+          'effective-Of': `RangeStartDate=${today};RangeMode=UPDATE`
+        }
+      }
+    );
+
+    await sendWhatsAppMessage(from, `✅ Leave applied successfully for ${worker.DisplayName}!\nType: ${mappedAbsenceType}\nDates: ${startDate} to ${endDate}`);
+
+  } catch (err) {
+    console.error('WhatsApp Apply Leave Error:', err.response?.data || err.message);
+    await sendWhatsAppMessage(from, `❌ Failed to apply leave: ${err.response?.data?.detail || err.message}`);
+  }
+}
 
 async function processLeaveBalance(from, personNumber) {
   try {
