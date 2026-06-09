@@ -3812,7 +3812,7 @@ async function processWhatsAppPendingLeaves(from, managerNumber) {
     const oracleAuth = process.env.ORACLE_AUTH;
 
     const limit = managerNumber ? 50 : 10;
-    const url = `${oracleUrl}/hcmRestApi/resources/11.13.18.05/absences?q=absenceStatusCd='SUBMITTED'&orderBy=creationDate:desc&limit=${limit}&onlyData=true`;
+    const url = `${oracleUrl}/hcmRestApi/resources/11.13.18.05/absences?q=approvalStatusCd='AWAITING'&orderBy=creationDate:desc&limit=${limit}&onlyData=true`;
 
     const response = await axios.get(url, {
       httpsAgent: agent,
@@ -3820,18 +3820,6 @@ async function processWhatsAppPendingLeaves(from, managerNumber) {
     });
 
     let leaves = response.data.items || [];
-
-    const fs = require('fs');
-    const path = require('path');
-    const processedFile = path.join(__dirname, 'processed_leaves.json');
-    let processedLeaves = [];
-    try {
-      if (fs.existsSync(processedFile)) {
-        processedLeaves = JSON.parse(fs.readFileSync(processedFile, 'utf8'));
-      }
-    } catch (e) {}
-
-    leaves = leaves.filter(l => !processedLeaves.includes(l.personAbsenceEntryId?.toString() || l.absenceId?.toString()));
 
     if (managerNumber && leaves.length > 0) {
       const uniquePersonIds = [...new Set(leaves.map(l => l.personId))];
@@ -3915,45 +3903,32 @@ async function processWhatsAppApproveLeave(
     const oracleUrl = process.env.ORACLE_BASE_URL;
     const oracleAuth = process.env.ORACLE_AUTH;
 
-    const statusCode = action === 'APPROVE' 
-      ? 'APPROVED' : 'DENIED';
-    const today = new Date().toISOString().split('T')[0];
+    const bpmUrl = `${oracleUrl}/bpm/api/4.0/tasks?keyword=${absenceId}`;
+    const bpmRes = await axios.get(bpmUrl, {
+      httpsAgent: agent,
+      headers: { 'Authorization': oracleAuth }
+    });
 
-    const url = `${oracleUrl}/hcmRestApi/resources/11.13.18.05/absences/${absenceId}`;
-
-    try {
-      await axios.patch(url,
-        { approvalStatusCd: statusCode },
-        {
-          httpsAgent: agent,
-          headers: {
-            'Content-Type': 'application/vnd.oracle.adf.resourceitem+json',
-            'Authorization': oracleAuth,
-            'effective-Of': `RangeStartDate=${today};RangeMode=UPDATE`
-          }
-        }
+    if (!bpmRes.data.items || bpmRes.data.items.length === 0) {
+      await sendWhatsAppMessage(from,
+        `❌ This leave is not awaiting workflow approval in Oracle Fusion. Current Fusion status is already Scheduled/Approved.`
       );
-    } catch (patchErr) {
-      if (action === 'REJECT') {
-        console.log(`Oracle threw an error on reject for ${absenceId}, proceeding with local soft-reject.`);
-      } else {
-        throw patchErr;
-      }
+      return;
     }
 
-    const fs = require('fs');
-    const path = require('path');
-    const processedFile = path.join(__dirname, 'processed_leaves.json');
-    let processedLeaves = [];
-    try {
-      if (fs.existsSync(processedFile)) {
-        processedLeaves = JSON.parse(fs.readFileSync(processedFile, 'utf8'));
+    const taskId = bpmRes.data.items[0].taskId;
+    const taskUrl = `${oracleUrl}/bpm/api/4.0/tasks/${taskId}`;
+
+    await axios.put(taskUrl,
+      { action: action },
+      {
+        httpsAgent: agent,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': oracleAuth
+        }
       }
-    } catch (e) {}
-    if (!processedLeaves.includes(absenceId.toString())) {
-      processedLeaves.push(absenceId.toString());
-      fs.writeFileSync(processedFile, JSON.stringify(processedLeaves));
-    }
+    );
 
     const actionWord = action === 'APPROVE' 
       ? 'approved ✅' : 'rejected ❌';
@@ -3961,6 +3936,7 @@ async function processWhatsAppApproveLeave(
     await sendWhatsAppMessage(from,
       `*Leave Request ${actionWord}*\n\n` +
       `Absence ID: ${absenceId}\n` +
+      `BPM Task ID: ${taskId}\n` +
       `Status updated in Oracle Fusion successfully.`
     );
 
