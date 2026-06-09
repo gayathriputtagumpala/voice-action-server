@@ -3539,7 +3539,7 @@ app.post('/api/oracle/applyleave', async (req, res) => {
         httpsAgent: agent,
         headers: {
           'Content-Type': 'application/vnd.oracle.adf.resourceitem+json',
-          'Authorization': absenceAuth,
+          'Authorization': oracleAuth,
           'effective-Of': `RangeStartDate=${today};RangeMode=UPDATE`
         }
       }
@@ -3590,22 +3590,20 @@ app.get('/api/oracle/absencetypes', async (req, res) => {
 // ─── GET PENDING LEAVE APPROVALS ─────────────────────
 app.get('/api/oracle/pendingleaves', async (req, res) => {
   try {
-    const absenceAuth = process.env.ABSENCE_ORACLE_AUTH ||
-      'Basic dXNlcl9yMTNfYTJmOlRxJUw3XjNt';
-    const absenceUrl = process.env.ABSENCE_ORACLE_URL ||
-      'https://dabiqy.ds-fa.oraclepdemos.com';
+    const oracleAuth = process.env.ORACLE_AUTH;
+    const oracleUrl = process.env.ORACLE_BASE_URL;
 
     const https = require('https');
     const agent = new https.Agent({ rejectUnauthorized: false });
 
     console.log('=== GET PENDING LEAVE APPROVALS ===');
 
-    const url = `${absenceUrl}/hcmRestApi/resources/11.13.18.05/absences?q=absenceStatusCd='SUBMITTED'&limit=20&onlyData=true`;
+    const url = `${oracleUrl}/hcmRestApi/resources/11.13.18.05/absences?q=absenceStatusCd='SUBMITTED'&limit=20&onlyData=true`;
 
     const response = await axios.get(url, {
       httpsAgent: agent,
       headers: {
-        'Authorization': absenceAuth,
+        'Authorization': oracleAuth,
         'Content-Type': 'application/json'
       }
     });
@@ -3634,10 +3632,8 @@ app.get('/api/oracle/pendingleaves', async (req, res) => {
 app.patch('/api/oracle/approveleave', async (req, res) => {
   try {
     const { absenceId, action, comments } = req.body;
-    const absenceAuth = process.env.ABSENCE_ORACLE_AUTH ||
-      'Basic dXNlcl9yMTNfYTJmOlRxJUw3XjNt';
-    const absenceUrl = process.env.ABSENCE_ORACLE_URL ||
-      'https://dabiqy.ds-fa.oraclepdemos.com';
+    const oracleAuth = process.env.ORACLE_AUTH;
+    const oracleUrl = process.env.ORACLE_BASE_URL;
 
     console.log('=== APPROVE/REJECT LEAVE ===');
     console.log('AbsenceId:', absenceId);
@@ -3649,7 +3645,7 @@ app.patch('/api/oracle/approveleave', async (req, res) => {
     const statusCode = action === 'APPROVE' 
       ? 'APPROVED' : 'REJECTED';
 
-    const url = `${absenceUrl}/hcmRestApi/resources/11.13.18.05/absences/${absenceId}`;
+    const url = `${oracleUrl}/hcmRestApi/resources/11.13.18.05/absences/${absenceId}`;
 
     const today = new Date().toISOString().split('T')[0];
 
@@ -3660,7 +3656,7 @@ app.patch('/api/oracle/approveleave', async (req, res) => {
         headers: {
           'Content-Type': 
             'application/vnd.oracle.adf.resourceitem+json',
-          'Authorization': absenceAuth,
+          'Authorization': oracleAuth,
           'effective-Of': 
             `RangeStartDate=${today};RangeMode=UPDATE`
         }
@@ -3810,16 +3806,14 @@ async function processWhatsAppPendingLeaves(from) {
   try {
     const https = require('https');
     const agent = new https.Agent({ rejectUnauthorized: false });
-    const absenceUrl = process.env.ABSENCE_ORACLE_URL ||
-      'https://dabiqy.ds-fa.oraclepdemos.com';
-    const absenceAuth = process.env.ABSENCE_ORACLE_AUTH ||
-      'Basic dXNlcl9yMTNfYTJmOlRxJUw3XjNt';
+    const oracleUrl = process.env.ORACLE_BASE_URL;
+    const oracleAuth = process.env.ORACLE_AUTH;
 
-    const url = `${absenceUrl}/hcmRestApi/resources/11.13.18.05/absences?q=absenceStatusCd='SUBMITTED'&limit=10&onlyData=true`;
+    const url = `${oracleUrl}/hcmRestApi/resources/11.13.18.05/absences?q=absenceStatusCd='SUBMITTED'&limit=10&onlyData=true`;
 
     const response = await axios.get(url, {
       httpsAgent: agent,
-      headers: { 'Authorization': absenceAuth }
+      headers: { 'Authorization': oracleAuth }
     });
 
     const leaves = response.data.items || [];
@@ -3881,16 +3875,14 @@ async function processWhatsAppApproveLeave(
   try {
     const https = require('https');
     const agent = new https.Agent({ rejectUnauthorized: false });
-    const absenceUrl = process.env.ABSENCE_ORACLE_URL ||
-      'https://dabiqy.ds-fa.oraclepdemos.com';
-    const absenceAuth = process.env.ABSENCE_ORACLE_AUTH ||
-      'Basic dXNlcl9yMTNfYTJmOlRxJUw3XjNt';
+    const oracleUrl = process.env.ORACLE_BASE_URL;
+    const oracleAuth = process.env.ORACLE_AUTH;
 
     const statusCode = action === 'APPROVE' 
       ? 'APPROVED' : 'REJECTED';
     const today = new Date().toISOString().split('T')[0];
 
-    const url = `${absenceUrl}/hcmRestApi/resources/11.13.18.05/absences/${absenceId}`;
+    const url = `${oracleUrl}/hcmRestApi/resources/11.13.18.05/absences/${absenceId}`;
 
     await axios.patch(url,
       { absenceStatusCd: statusCode },
@@ -3899,7 +3891,7 @@ async function processWhatsAppApproveLeave(
         headers: {
           'Content-Type': 
             'application/vnd.oracle.adf.resourceitem+json',
-          'Authorization': absenceAuth,
+          'Authorization': oracleAuth,
           'effective-Of': 
             `RangeStartDate=${today};RangeMode=UPDATE`
         }
