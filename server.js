@@ -1952,10 +1952,12 @@ async function handleWhatsAppText(from, text) {
         lower.includes('leave approval') ||
         lower.includes('any approval')) {
 
+      const mgrMatch = text.match(/manager\s*(\d{1,6})/i) || text.match(/for\s*(\d{1,6})/i);
+      const managerNumber = mgrMatch ? mgrMatch[1] : null;
       await sendWhatsAppMessage(from,
-        '⏳ Checking pending leave approvals...'
+        managerNumber ? `⏳ Checking pending leave approvals for manager ${managerNumber}...` : '⏳ Checking pending leave approvals...'
       );
-      await processWhatsAppPendingLeaves(from);
+      await processWhatsAppPendingLeaves(from, managerNumber);
 
     // APPROVE LEAVE via WhatsApp
     } else if (lower.includes('approve leave') && 
@@ -3802,21 +3804,41 @@ async function processLeaveBalance(from, personNumber) {
   }
 }
 
-async function processWhatsAppPendingLeaves(from) {
+async function processWhatsAppPendingLeaves(from, managerNumber) {
   try {
     const https = require('https');
     const agent = new https.Agent({ rejectUnauthorized: false });
     const oracleUrl = process.env.ORACLE_BASE_URL;
     const oracleAuth = process.env.ORACLE_AUTH;
 
-    const url = `${oracleUrl}/hcmRestApi/resources/11.13.18.05/absences?q=absenceStatusCd='SUBMITTED'&limit=10&onlyData=true`;
+    const limit = managerNumber ? 50 : 10;
+    const url = `${oracleUrl}/hcmRestApi/resources/11.13.18.05/absences?q=absenceStatusCd='SUBMITTED'&limit=${limit}&onlyData=true`;
 
     const response = await axios.get(url, {
       httpsAgent: agent,
       headers: { 'Authorization': oracleAuth }
     });
 
-    const leaves = response.data.items || [];
+    let leaves = response.data.items || [];
+
+    if (managerNumber && leaves.length > 0) {
+      const uniquePersonIds = [...new Set(leaves.map(l => l.personId))];
+      const validPersonIds = new Set();
+      
+      await Promise.all(uniquePersonIds.map(async (pId) => {
+        try {
+          const wUrl = `${oracleUrl}/hcmRestApi/resources/11.13.18.05/workers?q=PersonId=${pId}&expand=workRelationships.assignments.managers`;
+          const wRes = await axios.get(wUrl, { httpsAgent: agent, headers: { 'Authorization': oracleAuth } });
+          const mgrs = wRes.data.items[0]?.workRelationships?.[0]?.assignments?.[0]?.managers;
+          const hasManager = mgrs?.some(m => m.ManagerPersonNumber === managerNumber);
+          if (hasManager) validPersonIds.add(pId);
+        } catch (e) {
+          console.error(`Error fetching manager for ${pId}:`, e.message);
+        }
+      }));
+      
+      leaves = leaves.filter(l => validPersonIds.has(l.personId));
+    }
 
     if (leaves.length === 0) {
       await sendWhatsAppMessage(from,
