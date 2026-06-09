@@ -3747,7 +3747,7 @@ async function processApplyLeave(from, personNumber, leaveType, startDate, endDa
       }
     );
 
-    await sendWhatsAppMessage(from, `✅ Leave applied successfully for ${worker.DisplayName}!\nType: ${mappedAbsenceType}\nDates: ${startDate} to ${endDate}`);
+    await sendWhatsAppMessage(from, `✅ Leave applied successfully for ${worker.DisplayName || 'Employee ' + personNumber}!\nType: ${mappedAbsenceType}\nDates: ${startDate} to ${endDate}`);
 
   } catch (err) {
     const errorData = err.response?.data;
@@ -3864,9 +3864,8 @@ async function processWhatsAppPendingLeaves(from, managerNumber) {
             .toLocaleDateString('en-IN')
         : 'N/A';
 
-      message += `${i + 1}. *${
-        leave.personName || 
-        'Employee ' + leave.personId
+      message += `${i + 1}. *Employee No: ${
+        leave.personNumber || leave.personId
       }*\n`;
       message += `   Type: ${
         leave.absenceTypeName || 'Leave'
@@ -3875,7 +3874,7 @@ async function processWhatsAppPendingLeaves(from, managerNumber) {
       message += `   Duration: ${
         leave.duration || 'N/A'
       } ${leave.uom || 'Hours'}\n`;
-      message += `   ID: ${
+      message += `   Leave ID: ${
         leave.personAbsenceEntryId || leave.absenceId || 
         leave.AbsenceEntryId || 'N/A'
       }\n\n`;
