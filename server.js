@@ -3850,7 +3850,7 @@ async function processWhatsAppPendingLeaves(from) {
         leave.duration || 'N/A'
       } ${leave.uom || 'Hours'}\n`;
       message += `   ID: ${
-        leave.absenceId || 
+        leave.personAbsenceEntryId || leave.absenceId || 
         leave.AbsenceEntryId || 'N/A'
       }\n\n`;
     });
