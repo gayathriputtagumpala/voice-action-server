@@ -3812,7 +3812,7 @@ async function processWhatsAppPendingLeaves(from, managerNumber) {
     const oracleAuth = process.env.ORACLE_AUTH;
 
     const limit = managerNumber ? 50 : 10;
-    const url = `${oracleUrl}/hcmRestApi/resources/11.13.18.05/absences?q=absenceStatusCd='SUBMITTED'&limit=${limit}&onlyData=true`;
+    const url = `${oracleUrl}/hcmRestApi/resources/11.13.18.05/absences?q=absenceStatusCd='SUBMITTED'&orderBy=creationDate:desc&limit=${limit}&onlyData=true`;
 
     const response = await axios.get(url, {
       httpsAgent: agent,
@@ -3830,7 +3830,11 @@ async function processWhatsAppPendingLeaves(from, managerNumber) {
           const wUrl = `${oracleUrl}/hcmRestApi/resources/11.13.18.05/workers?q=PersonId=${pId}&expand=workRelationships.assignments.managers`;
           const wRes = await axios.get(wUrl, { httpsAgent: agent, headers: { 'Authorization': oracleAuth } });
           const mgrs = wRes.data.items[0]?.workRelationships?.[0]?.assignments?.[0]?.managers;
-          const hasManager = mgrs?.some(m => m.ManagerPersonNumber === managerNumber);
+          const hasManager = mgrs?.some(m => 
+            m.ManagerPersonNumber === managerNumber || 
+            m.ManagerAssignmentNumber === managerNumber || 
+            m.ManagerAssignmentNumber === 'E' + managerNumber
+          );
           if (hasManager) validPersonIds.add(pId);
         } catch (e) {
           console.error(`Error fetching manager for ${pId}:`, e.message);
