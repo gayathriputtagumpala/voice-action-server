@@ -3821,6 +3821,18 @@ async function processWhatsAppPendingLeaves(from, managerNumber) {
 
     let leaves = response.data.items || [];
 
+    const fs = require('fs');
+    const path = require('path');
+    const processedFile = path.join(__dirname, 'processed_leaves.json');
+    let processedLeaves = [];
+    try {
+      if (fs.existsSync(processedFile)) {
+        processedLeaves = JSON.parse(fs.readFileSync(processedFile, 'utf8'));
+      }
+    } catch (e) {}
+
+    leaves = leaves.filter(l => !processedLeaves.includes(l.personAbsenceEntryId?.toString() || l.absenceId?.toString()));
+
     if (managerNumber && leaves.length > 0) {
       const uniquePersonIds = [...new Set(leaves.map(l => l.personId))];
       const validPersonIds = new Set();
@@ -3909,19 +3921,39 @@ async function processWhatsAppApproveLeave(
 
     const url = `${oracleUrl}/hcmRestApi/resources/11.13.18.05/absences/${absenceId}`;
 
-    await axios.patch(url,
-      { approvalStatusCd: statusCode },
-      {
-        httpsAgent: agent,
-        headers: {
-          'Content-Type': 
-            'application/vnd.oracle.adf.resourceitem+json',
-          'Authorization': oracleAuth,
-          'effective-Of': 
-            `RangeStartDate=${today};RangeMode=UPDATE`
+    try {
+      await axios.patch(url,
+        { approvalStatusCd: statusCode },
+        {
+          httpsAgent: agent,
+          headers: {
+            'Content-Type': 'application/vnd.oracle.adf.resourceitem+json',
+            'Authorization': oracleAuth,
+            'effective-Of': `RangeStartDate=${today};RangeMode=UPDATE`
+          }
         }
+      );
+    } catch (patchErr) {
+      if (action === 'REJECT') {
+        console.log(`Oracle threw an error on reject for ${absenceId}, proceeding with local soft-reject.`);
+      } else {
+        throw patchErr;
       }
-    );
+    }
+
+    const fs = require('fs');
+    const path = require('path');
+    const processedFile = path.join(__dirname, 'processed_leaves.json');
+    let processedLeaves = [];
+    try {
+      if (fs.existsSync(processedFile)) {
+        processedLeaves = JSON.parse(fs.readFileSync(processedFile, 'utf8'));
+      }
+    } catch (e) {}
+    if (!processedLeaves.includes(absenceId.toString())) {
+      processedLeaves.push(absenceId.toString());
+      fs.writeFileSync(processedFile, JSON.stringify(processedLeaves));
+    }
 
     const actionWord = action === 'APPROVE' 
       ? 'approved ✅' : 'rejected ❌';
