@@ -3645,14 +3645,14 @@ app.patch('/api/oracle/approveleave', async (req, res) => {
     const agent = new https.Agent({ rejectUnauthorized: false });
 
     const statusCode = action === 'APPROVE' 
-      ? 'APPROVED' : 'REJECTED';
+      ? 'APPROVED' : 'DENIED';
 
     const url = `${oracleUrl}/hcmRestApi/resources/11.13.18.05/absences/${absenceId}`;
 
     const today = new Date().toISOString().split('T')[0];
 
     const response = await axios.patch(url,
-      { absenceStatusCd: statusCode },
+      { approvalStatusCd: statusCode },
       {
         httpsAgent: agent,
         headers: {
@@ -3905,13 +3905,13 @@ async function processWhatsAppApproveLeave(
     const oracleAuth = process.env.ORACLE_AUTH;
 
     const statusCode = action === 'APPROVE' 
-      ? 'APPROVED' : 'REJECTED';
+      ? 'APPROVED' : 'DENIED';
     const today = new Date().toISOString().split('T')[0];
 
     const url = `${oracleUrl}/hcmRestApi/resources/11.13.18.05/absences/${absenceId}`;
 
     await axios.patch(url,
-      { absenceStatusCd: statusCode },
+      { approvalStatusCd: statusCode },
       {
         httpsAgent: agent,
         headers: {
