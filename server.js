@@ -1597,7 +1597,7 @@ app.get('/api/oracle/po/details', async (req, res) => {
     const { orderNumber } = req.query;
     
     // Always use system auth for viewing POs to avoid 403s for regular users
-    const oracleAuth = process.env.ORACLE_AUTH;
+    const oracleAuth = (typeof from !== 'undefined' && whatsappSessions[from]?.oracleAuth) ? whatsappSessions[from].oracleAuth : process.env.ORACLE_AUTH;
     let oracleBaseUrl = req.headers['x-oracle-url'];
     if (!oracleBaseUrl || oracleBaseUrl === 'null' || oracleBaseUrl === 'undefined') {
       oracleBaseUrl = process.env.ORACLE_BASE_URL;
@@ -1654,7 +1654,7 @@ app.get('/api/oracle/po/details', async (req, res) => {
 app.get('/api/oracle/po/list', async (req, res) => {
   try {
     // Always use system auth for viewing POs to avoid 403s for regular users
-    const oracleAuth = process.env.ORACLE_AUTH;
+    const oracleAuth = (typeof from !== 'undefined' && whatsappSessions[from]?.oracleAuth) ? whatsappSessions[from].oracleAuth : process.env.ORACLE_AUTH;
     let oracleBaseUrl = req.headers['x-oracle-url'];
     if (!oracleBaseUrl || oracleBaseUrl === 'null' || oracleBaseUrl === 'undefined') {
       oracleBaseUrl = process.env.ORACLE_BASE_URL;
@@ -1813,6 +1813,64 @@ app.post('/webhook/whatsapp', async (req, res) => {
 async function handleWhatsAppText(from, text) {
   try {
     const lower = text.toLowerCase().trim();
+
+    // LOGIN LOGIC
+    if (lower.startsWith('login ')) {
+      const parts = text.trim().split(/\s+/);
+      if (parts.length < 3) {
+        await sendWhatsAppMessage(from, '❌ Invalid format. Please use: login [username] [password]');
+        return;
+      }
+      const username = parts[1];
+      const password = parts.slice(2).join(' ');
+      
+      await sendWhatsAppMessage(from, '⏳ Verifying your Oracle Fusion credentials...');
+      
+      try {
+        const https = require('https');
+        const agent = new https.Agent({ rejectUnauthorized: false });
+        const targetOracleUrl = process.env.ORACLE_BASE_URL.replace(/\/$/, '');
+        const authToken = Buffer.from(`${username}:${password}`).toString('base64');
+        const authHeader = `Basic ${authToken}`;
+        
+        const response = await require('axios').get(
+          `${targetOracleUrl}/hcmRestApi/resources/11.13.18.05/`,
+          {
+            httpsAgent: agent,
+            headers: { 'Authorization': authHeader },
+            timeout: 15000
+          }
+        );
+        
+        if (response.status === 200 || response.status === 201 || response.status === 403) {
+          whatsappSessions[from] = whatsappSessions[from] || {};
+          whatsappSessions[from].oracleAuth = authHeader;
+          whatsappSessions[from].username = username;
+          await sendWhatsAppMessage(from, `✅ Login successful! Welcome, ${username}.\nYou can now perform actions.`);
+        }
+      } catch (err) {
+        if (err.response?.status === 401) {
+          await sendWhatsAppMessage(from, '❌ Invalid Oracle username or password. Please try again.');
+        } else if (err.response?.status === 403) {
+          // 403 means credentials are correct but no permission to catalog, which is fine for login
+          whatsappSessions[from] = whatsappSessions[from] || {};
+          whatsappSessions[from].oracleAuth = `Basic ${Buffer.from(`${username}:${password}`).toString('base64')}`;
+          whatsappSessions[from].username = username;
+          await sendWhatsAppMessage(from, `✅ Login successful! Welcome, ${username}.`);
+        } else {
+          await sendWhatsAppMessage(from, '❌ Login failed due to a connection or server error.');
+        }
+      }
+      return;
+    }
+
+    // CHECK AUTHENTICATION FOR OTHER COMMANDS
+    const isHelp = lower === 'hi' || lower === 'hello' || lower === 'help' || lower === 'start';
+    if (!isHelp && (!whatsappSessions[from] || !whatsappSessions[from].oracleAuth)) {
+      await sendWhatsAppMessage(from, '🔒 *Authentication Required*\n\nPlease login to Oracle Fusion to perform this action.\n\nReply with:\n*login [username] [password]*');
+      return;
+    }
+
     
     // Help message
     if (lower === 'hi' || lower === 'hello' || 
@@ -2196,7 +2254,7 @@ async function handleWhatsAppText(from, text) {
           const https = require('https');
           const agent = new https.Agent({ rejectUnauthorized: false });
           const oracleBaseUrl = process.env.ORACLE_BASE_URL;
-          const oracleAuth = process.env.ORACLE_AUTH;
+          const oracleAuth = (typeof from !== 'undefined' && whatsappSessions[from]?.oracleAuth) ? whatsappSessions[from].oracleAuth : process.env.ORACLE_AUTH;
 
           let poHeaderId = poData?.OrderNumber === poNumber ? poData.POHeaderId : null;
           let statusCode = poData?.OrderNumber === poNumber ? poData.StatusCode : null;
@@ -2380,7 +2438,7 @@ async function handleWhatsAppPO(from, poNumber) {
     const https = require('https');
     const agent = new https.Agent({ rejectUnauthorized: false });
     const oracleBaseUrl = process.env.ORACLE_BASE_URL;
-    const oracleAuth = process.env.ORACLE_AUTH;
+    const oracleAuth = (typeof from !== 'undefined' && whatsappSessions[from]?.oracleAuth) ? whatsappSessions[from].oracleAuth : process.env.ORACLE_AUTH;
 
     const url = `${oracleBaseUrl}/fscmRestApi/resources/11.13.18.05/purchaseOrders?q=OrderNumber%3D%27${poNumber}%27&fields=OrderNumber,Status,Total,Supplier,CreationDate,CurrencyCode,POHeaderId,StatusCode`;
 
@@ -2435,7 +2493,7 @@ async function handleWhatsAppPOList(from, status = 'OPEN', statusLabel = 'Open')
     const https = require('https');
     const agent = new https.Agent({ rejectUnauthorized: false });
     const oracleBaseUrl = process.env.ORACLE_BASE_URL;
-    const oracleAuth = process.env.ORACLE_AUTH;
+    const oracleAuth = (typeof from !== 'undefined' && whatsappSessions[from]?.oracleAuth) ? whatsappSessions[from].oracleAuth : process.env.ORACLE_AUTH;
 
     let pos = [];
 
@@ -3277,7 +3335,7 @@ async function processHireEmployee(from, details) {
 // ─── PROCESS GET EMPLOYEE DETAILS ────────────────────
 async function processGetEmployeeDetails(from, personNumber) {
   try {
-    const oracleAuth = process.env.ORACLE_AUTH;
+    const oracleAuth = (typeof from !== 'undefined' && whatsappSessions[from]?.oracleAuth) ? whatsappSessions[from].oracleAuth : process.env.ORACLE_AUTH;
     const oracleBaseUrl = process.env.ORACLE_BASE_URL || 'https://fa-etaj-saasfademo1.ds-fa.oraclepdemos.com';
     const baseUrl = oracleBaseUrl.replace(/\/$/, '');
     
@@ -3464,7 +3522,7 @@ app.listen(port, () => {
 app.get('/api/oracle/leavebalance', async (req, res) => {
   try {
     const { personId } = req.query;
-    const absenceAuth = process.env.ORACLE_AUTH;
+    const absenceAuth = (typeof from !== 'undefined' && whatsappSessions[from]?.oracleAuth) ? whatsappSessions[from].oracleAuth : process.env.ORACLE_AUTH;
     const absenceUrl = process.env.ORACLE_BASE_URL;
 
     console.log('=== GET LEAVE BALANCE ===');
@@ -3500,7 +3558,7 @@ app.post('/api/oracle/applyleave', async (req, res) => {
       personId, employer, absenceTypeId, absenceTypeName, startDate, endDate, startTime, endTime
     } = req.body;
 
-    const absenceAuth = process.env.ORACLE_AUTH;
+    const absenceAuth = (typeof from !== 'undefined' && whatsappSessions[from]?.oracleAuth) ? whatsappSessions[from].oracleAuth : process.env.ORACLE_AUTH;
     const absenceUrl = process.env.ORACLE_BASE_URL;
 
     // Map the hardcoded 'Casual Leave' from frontend to 'Vacation' to match Oracle's valid types
@@ -3559,7 +3617,7 @@ app.post('/api/oracle/applyleave', async (req, res) => {
 // GET Absence Types
 app.get('/api/oracle/absencetypes', async (req, res) => {
   try {
-    const absenceAuth = process.env.ORACLE_AUTH;
+    const absenceAuth = (typeof from !== 'undefined' && whatsappSessions[from]?.oracleAuth) ? whatsappSessions[from].oracleAuth : process.env.ORACLE_AUTH;
     const absenceUrl = process.env.ORACLE_BASE_URL;
 
     const https = require('https');
@@ -3592,7 +3650,7 @@ app.get('/api/oracle/absencetypes', async (req, res) => {
 // ─── GET PENDING LEAVE APPROVALS ─────────────────────
 app.get('/api/oracle/pendingleaves', async (req, res) => {
   try {
-    const oracleAuth = process.env.ORACLE_AUTH;
+    const oracleAuth = (typeof from !== 'undefined' && whatsappSessions[from]?.oracleAuth) ? whatsappSessions[from].oracleAuth : process.env.ORACLE_AUTH;
     const oracleUrl = process.env.ORACLE_BASE_URL;
 
     const https = require('https');
@@ -3634,7 +3692,7 @@ app.get('/api/oracle/pendingleaves', async (req, res) => {
 app.patch('/api/oracle/approveleave', async (req, res) => {
   try {
     const { absenceId, action, comments } = req.body;
-    const oracleAuth = process.env.ORACLE_AUTH;
+    const oracleAuth = (typeof from !== 'undefined' && whatsappSessions[from]?.oracleAuth) ? whatsappSessions[from].oracleAuth : process.env.ORACLE_AUTH;
     const oracleUrl = process.env.ORACLE_BASE_URL;
 
     console.log('=== APPROVE/REJECT LEAVE ===');
@@ -3691,7 +3749,7 @@ async function processApplyLeave(from, personNumber, leaveType, startDate, endDa
     const https = require('https');
     const agent = new https.Agent({ rejectUnauthorized: false });
     const oracleUrl = process.env.ORACLE_BASE_URL;
-    const oracleAuth = process.env.ORACLE_AUTH;
+    const oracleAuth = (typeof from !== 'undefined' && whatsappSessions[from]?.oracleAuth) ? whatsappSessions[from].oracleAuth : process.env.ORACLE_AUTH;
 
     const workerRes = await axios.get(
       `${oracleUrl}/hcmRestApi/resources/11.13.18.05/workers?q=PersonNumber%3D${personNumber}&expand=workRelationships`,
@@ -3762,9 +3820,9 @@ async function processLeaveBalance(from, personNumber) {
     const https = require('https');
     const agent = new https.Agent({ rejectUnauthorized: false });
     const absenceUrl = process.env.ORACLE_BASE_URL;
-    const absenceAuth = process.env.ORACLE_AUTH;
+    const absenceAuth = (typeof from !== 'undefined' && whatsappSessions[from]?.oracleAuth) ? whatsappSessions[from].oracleAuth : process.env.ORACLE_AUTH;
     const oracleUrl = process.env.ORACLE_BASE_URL;
-    const oracleAuth = process.env.ORACLE_AUTH;
+    const oracleAuth = (typeof from !== 'undefined' && whatsappSessions[from]?.oracleAuth) ? whatsappSessions[from].oracleAuth : process.env.ORACLE_AUTH;
 
     const workerRes = await axios.get(
       `${oracleUrl}/hcmRestApi/resources/11.13.18.05/workers?q=PersonNumber%3D${personNumber}&fields=PersonId,DisplayName`,
@@ -3809,7 +3867,7 @@ async function processWhatsAppPendingLeaves(from, managerNumber) {
     const https = require('https');
     const agent = new https.Agent({ rejectUnauthorized: false });
     const oracleUrl = process.env.ORACLE_BASE_URL;
-    const oracleAuth = process.env.ORACLE_AUTH;
+    const oracleAuth = (typeof from !== 'undefined' && whatsappSessions[from]?.oracleAuth) ? whatsappSessions[from].oracleAuth : process.env.ORACLE_AUTH;
 
     const limit = managerNumber ? 50 : 10;
     const url = `${oracleUrl}/hcmRestApi/resources/11.13.18.05/absences?q=approvalStatusCd='AWAITING'&orderBy=creationDate:desc&limit=${limit}&onlyData=true`;
@@ -3901,7 +3959,7 @@ async function processWhatsAppApproveLeave(
     const https = require('https');
     const agent = new https.Agent({ rejectUnauthorized: false });
     const oracleUrl = process.env.ORACLE_BASE_URL;
-    const oracleAuth = process.env.ORACLE_AUTH;
+    const oracleAuth = (typeof from !== 'undefined' && whatsappSessions[from]?.oracleAuth) ? whatsappSessions[from].oracleAuth : process.env.ORACLE_AUTH;
 
     const bpmUrl = `${oracleUrl}/bpm/api/4.0/tasks?keyword=${absenceId}`;
     const bpmRes = await axios.get(bpmUrl, {
