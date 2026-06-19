@@ -4208,7 +4208,7 @@ Return ONLY valid JSON in this exact format:
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
       {
         contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.7, maxOutputTokens: 2000 }
+        generationConfig: { temperature: 0.7, maxOutputTokens: 2000, responseMimeType: "application/json" }
       },
       { headers: { 'Content-Type': 'application/json' } }
     );
@@ -4304,7 +4304,7 @@ Generate a wellness report. Return ONLY valid JSON:
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
       {
         contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.3, maxOutputTokens: 2000 }
+        generationConfig: { temperature: 0.3, maxOutputTokens: 2000, responseMimeType: "application/json" }
       },
       { headers: { 'Content-Type': 'application/json' } }
     );
