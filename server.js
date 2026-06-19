@@ -2350,6 +2350,56 @@ async function handleWhatsAppText(from, text) {
         );
       }
 
+    // WELLNESS TRIGGER
+    } else if (lower.includes('wellness') || 
+               lower.includes('health check') ||
+               lower.includes('wellbeing')) {
+      
+      const numMatch = text.match(/\d{3,6}/);
+      const personNumber = numMatch ? numMatch[0] : null;
+      
+      if (personNumber) {
+        await sendWhatsAppMessage(from,
+          `⏳ Loading employee context for ${personNumber}...`
+        );
+        
+        try {
+          const ctxRes = await axios.get(
+            `http://localhost:3000/api/wellness/context?personNumber=${personNumber}`,
+            { headers: { 
+              'x-oracle-auth': process.env.ORACLE_AUTH,
+              'x-oracle-url': process.env.ORACLE_BASE_URL
+            } }
+          );
+          
+          await handleWellnessWhatsApp(from, text, ctxRes.data.context);
+          
+        } catch (err) {
+          await sendWhatsAppMessage(from,
+            `❌ Employee ${personNumber} not found.`
+          );
+        }
+        
+      } else if (wellnessConversations[from]) {
+        // Ongoing wellness conversation
+        await handleWellnessWhatsApp(
+          from, text, wellnessConversations[from].context
+        );
+        
+      } else {
+        await sendWhatsAppMessage(from,
+          `🌟 *Wellness Check*\n\n` +
+          `Please provide your person number.\n` +
+          `Example: "wellness check 1405"`
+        );
+      }
+
+    } else if (wellnessConversations[from]) {
+      // User is in the middle of wellness questionnaire
+      await handleWellnessWhatsApp(
+        from, text, wellnessConversations[from].context
+      );
+
     // UNKNOWN COMMAND  
     } else {
       await sendWhatsAppMessage(from,
@@ -4007,5 +4057,414 @@ async function processWhatsAppApproveLeave(
         err.response?.data?.detail || err.message
       }`
     );
+  }
+}
+
+// ─── WELLNESS: GET EMPLOYEE CONTEXT ──────────────────
+app.get('/api/wellness/context', async (req, res) => {
+  try {
+    const { personNumber } = req.query;
+    const oracleAuth = req.headers['x-oracle-auth'] ||
+      process.env.ORACLE_AUTH;
+    const oracleBaseUrl = req.headers['x-oracle-url'] ||
+      process.env.ORACLE_BASE_URL;
+    const absenceAuth = process.env.ABSENCE_ORACLE_AUTH || process.env.ORACLE_AUTH;
+    const absenceUrl = process.env.ABSENCE_ORACLE_URL || process.env.ORACLE_BASE_URL;
+
+    console.log('=== GET WELLNESS CONTEXT ===');
+    console.log('Person Number:', personNumber);
+
+    const https = require('https');
+    const agent = new https.Agent({ rejectUnauthorized: false });
+
+    // Step 1: Get worker basic details
+    const workerRes = await axios.get(
+      `${oracleBaseUrl}/hcmRestApi/resources/11.13.18.05/workers?q=PersonNumber%3D${personNumber}&expand=workRelationships.assignments.managers&fields=PersonId,PersonNumber,DisplayName,workRelationships`,
+      { httpsAgent: agent, headers: { 'Authorization': oracleAuth } }
+    );
+
+    if (!workerRes.data.items?.length) {
+      return res.status(404).json({ 
+        error: `Employee ${personNumber} not found` 
+      });
+    }
+
+    const worker = workerRes.data.items[0];
+    const workRel = worker.workRelationships?.[0];
+    const assignment = workRel?.assignments?.[0];
+    const manager = assignment?.managers?.[0];
+
+    // Calculate tenure in months
+    const startDate = workRel?.StartDate 
+      ? new Date(workRel.StartDate) : null;
+    const tenureMonths = startDate 
+      ? Math.floor((new Date() - startDate) / (1000 * 60 * 60 * 24 * 30)) 
+      : 0;
+
+    // Step 2: Get absence history
+    let absenceHistory = [];
+    let totalAbsenceDays = 0;
+    let recentAbsences = 0;
+    
+    try {
+      const absenceRes = await axios.get(
+        `${absenceUrl}/hcmRestApi/resources/11.13.18.05/absences?q=personId=${worker.PersonId}&onlyData=true&limit=20`,
+        { httpsAgent: agent, headers: { 'Authorization': absenceAuth } }
+      );
+      absenceHistory = absenceRes.data.items || [];
+      
+      // Count absences in last 3 months
+      const threeMonthsAgo = new Date();
+      threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+      
+      absenceHistory.forEach(a => {
+        const duration = parseFloat(a.duration) || 0;
+        totalAbsenceDays += duration / 8;
+        if (new Date(a.startDate) > threeMonthsAgo) {
+          recentAbsences++;
+        }
+      });
+    } catch (err) {
+      console.log('Absence fetch warning:', err.message);
+    }
+
+    // Build employee context
+    const context = {
+      PersonId: worker.PersonId,
+      PersonNumber: personNumber,
+      DisplayName: worker.DisplayName,
+      Department: assignment?.DepartmentName || 'N/A',
+      JobTitle: assignment?.JobCode || 'N/A',
+      Location: assignment?.LocationCode || 'N/A',
+      Manager: manager?.ManagerAssignmentNumber || 'N/A',
+      TenureMonths: tenureMonths,
+      TenureCategory: tenureMonths < 3 ? 'New Joiner' 
+        : tenureMonths < 12 ? 'Junior' 
+        : tenureMonths < 36 ? 'Mid-level' 
+        : 'Senior',
+      TotalAbsenceDays: Math.round(totalAbsenceDays),
+      RecentAbsences: recentAbsences,
+      AbsenceRisk: recentAbsences > 3 ? 'High' 
+        : recentAbsences > 1 ? 'Medium' : 'Low',
+      WorkRelationshipStart: workRel?.StartDate || 'N/A',
+      LegalEmployer: workRel?.LegalEmployerName || 'N/A'
+    };
+
+    console.log('Employee context built:', JSON.stringify(context));
+    res.json({ context });
+
+  } catch (err) {
+    console.error('Wellness context error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── WELLNESS: GENERATE QUESTIONS ────────────────────
+app.post('/api/wellness/questions', async (req, res) => {
+  try {
+    const { context } = req.body;
+    const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+
+    console.log('=== GENERATE WELLNESS QUESTIONS ===');
+
+    const prompt = `You are an HR Wellness Agent. Based on this employee context, generate exactly 6 personalized wellness questions.
+
+EMPLOYEE CONTEXT:
+- Name: ${context.DisplayName}
+- Department: ${context.Department}
+- Tenure: ${context.TenureMonths} months (${context.TenureCategory})
+- Recent Absences (last 3 months): ${context.RecentAbsences}
+- Total Absence Days: ${context.TotalAbsenceDays}
+- Absence Risk: ${context.AbsenceRisk}
+- Location: ${context.Location}
+
+RULES:
+1. Questions must be personalized based on context
+2. If TenureMonths < 3: include onboarding/adaptation question
+3. If RecentAbsences > 2: include health/wellbeing question  
+4. If TotalAbsenceDays > 10: include stress/burnout question
+5. Always include sleep, stress, work-life balance questions
+6. Questions should be empathetic and non-intrusive
+7. Each question must have 4 answer options
+
+Return ONLY valid JSON in this exact format:
+{
+  "questions": [
+    {
+      "id": 1,
+      "question": "question text",
+      "category": "sleep|stress|worklife|health|social|adaptation",
+      "options": [
+        {"value": 1, "label": "option 1"},
+        {"value": 2, "label": "option 2"},
+        {"value": 3, "label": "option 3"},
+        {"value": 4, "label": "option 4"}
+      ]
+    }
+  ]
+}`;
+
+    const geminiRes = await axios.post(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { temperature: 0.7, maxOutputTokens: 2000 }
+      },
+      { headers: { 'Content-Type': 'application/json' } }
+    );
+
+    const responseText = geminiRes.data.candidates[0].content.parts[0].text;
+    console.log('Gemini questions response:', responseText);
+
+    // Parse JSON from response
+    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('Invalid JSON from Gemini');
+    
+    const parsed = JSON.parse(jsonMatch[0]);
+    res.json(parsed);
+
+  } catch (err) {
+    console.error('Generate questions error:', err.message);
+    
+    // Fallback questions if Gemini fails
+    res.json({
+      questions: [
+        { id: 1, question: "How many hours of sleep do you get on average per night?", category: "sleep",
+          options: [{ value: 1, label: "Less than 5 hours" }, { value: 2, label: "5-6 hours" }, { value: 3, label: "6-7 hours" }, { value: 4, label: "7-8 hours" }] },
+        { id: 2, question: "How would you rate your stress level at work this week?", category: "stress",
+          options: [{ value: 1, label: "Very high stress" }, { value: 2, label: "Moderate stress" }, { value: 3, label: "Low stress" }, { value: 4, label: "No stress" }] },
+        { id: 3, question: "How satisfied are you with your work-life balance?", category: "worklife",
+          options: [{ value: 1, label: "Very unsatisfied" }, { value: 2, label: "Unsatisfied" }, { value: 3, label: "Satisfied" }, { value: 4, label: "Very satisfied" }] },
+        { id: 4, question: "How often do you exercise or do physical activity?", category: "health",
+          options: [{ value: 1, label: "Never" }, { value: 2, label: "Once a week" }, { value: 3, label: "2-3 times a week" }, { value: 4, label: "Daily" }] },
+        { id: 5, question: "How connected do you feel with your team?", category: "social",
+          options: [{ value: 1, label: "Very disconnected" }, { value: 2, label: "Somewhat disconnected" }, { value: 3, label: "Connected" }, { value: 4, label: "Very connected" }] },
+        { id: 6, question: "How often do you feel energetic and motivated at work?", category: "health",
+          options: [{ value: 1, label: "Rarely" }, { value: 2, label: "Sometimes" }, { value: 3, label: "Often" }, { value: 4, label: "Always" }] }
+      ]
+    });
+  }
+});
+
+// ─── WELLNESS: CALCULATE SCORE ────────────────────────
+app.post('/api/wellness/score', async (req, res) => {
+  try {
+    const { context, answers } = req.body;
+    const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+
+    console.log('=== CALCULATE WELLNESS SCORE ===');
+    console.log('Answers:', JSON.stringify(answers));
+
+    const prompt = `You are an HR Wellness Scoring Agent. Analyze these wellness survey answers and employee context to generate a comprehensive wellness report.
+
+EMPLOYEE CONTEXT:
+- Name: ${context.DisplayName}
+- Department: ${context.Department}
+- Tenure: ${context.TenureMonths} months
+- Recent Absences: ${context.RecentAbsences} in last 3 months
+- Total Absence Days: ${context.TotalAbsenceDays}
+
+SURVEY ANSWERS:
+${answers.map(a => `Q: ${a.question} (${a.category})\nA: ${a.answer} (score: ${a.value}/4)`).join('\n\n')}
+
+Generate a wellness report. Return ONLY valid JSON:
+{
+  "overallScore": 0-100,
+  "riskLevel": "Low|Medium|High",
+  "categories": {
+    "sleep": { "score": 0-100, "status": "Good|Fair|Poor" },
+    "stress": { "score": 0-100, "status": "Good|Fair|Poor" },
+    "worklife": { "score": 0-100, "status": "Good|Fair|Poor" },
+    "health": { "score": 0-100, "status": "Good|Fair|Poor" },
+    "social": { "score": 0-100, "status": "Good|Fair|Poor" }
+  },
+  "insights": [
+    "insight 1",
+    "insight 2",
+    "insight 3"
+  ],
+  "recommendations": {
+    "food": "specific food recommendation",
+    "activity": "specific activity recommendation",
+    "work": "specific work recommendation",
+    "learning": "specific learning recommendation"
+  },
+  "hrActions": {
+    "required": true|false,
+    "actions": [
+      "action 1 if high risk",
+      "action 2 if high risk"
+    ],
+    "followUpDays": 7|14|30
+  },
+  "message": "Personalized encouraging message for the employee"
+}`;
+
+    const geminiRes = await axios.post(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { temperature: 0.3, maxOutputTokens: 2000 }
+      },
+      { headers: { 'Content-Type': 'application/json' } }
+    );
+
+    const responseText = geminiRes.data.candidates[0].content.parts[0].text;
+    console.log('Gemini score response:', responseText);
+
+    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('Invalid JSON from Gemini');
+    
+    const report = JSON.parse(jsonMatch[0]);
+    
+    // Log for audit
+    console.log(`Wellness Report for ${context.DisplayName}:`);
+    console.log(`Score: ${report.overallScore}, Risk: ${report.riskLevel}`);
+    
+    res.json({ report });
+
+  } catch (err) {
+    console.error('Wellness score error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── WELLNESS: WHATSAPP FLOW ──────────────────────────
+// Store ongoing wellness conversations
+const wellnessConversations = {};
+
+async function handleWellnessWhatsApp(from, text, context) {
+  const session = wellnessConversations[from] || null;
+
+  // Start new wellness check
+  if (!session) {
+    wellnessConversations[from] = {
+      stage: 'questions',
+      context: context,
+      questions: [],
+      answers: [],
+      currentQ: 0
+    };
+
+    // Generate questions
+    try {
+      const qRes = await axios.post(
+        'http://localhost:3000/api/wellness/questions',
+        { context }
+      );
+      wellnessConversations[from].questions = qRes.data.questions;
+      
+      const firstQ = qRes.data.questions[0];
+      let message = `🌟 *Wellness Check for ${context.DisplayName}*\n\n`;
+      message += `I have ${qRes.data.questions.length} quick questions.\n\n`;
+      message += `*Question 1 of ${qRes.data.questions.length}:*\n`;
+      message += `${firstQ.question}\n\n`;
+      firstQ.options.forEach(o => {
+        message += `${o.value}. ${o.label}\n`;
+      });
+      message += `\nReply with the number (1-4)`;
+      
+      await sendWhatsAppMessage(from, message);
+    } catch (err) {
+      console.error('WhatsApp wellness error:', err.message);
+      await sendWhatsAppMessage(from,
+        '❌ Could not start wellness check. Please try again.'
+      );
+    }
+    return;
+  }
+
+  // Handle answer
+  const answerNum = parseInt(text.trim());
+  if (isNaN(answerNum) || answerNum < 1 || answerNum > 4) {
+    await sendWhatsAppMessage(from,
+      'Please reply with a number between 1 and 4.'
+    );
+    return;
+  }
+
+  const currentQ = session.questions[session.currentQ];
+  const selectedOption = currentQ.options.find(
+    o => o.value === answerNum
+  );
+
+  session.answers.push({
+    question: currentQ.question,
+    category: currentQ.category,
+    answer: selectedOption?.label || answerNum.toString(),
+    value: answerNum
+  });
+  session.currentQ++;
+
+  // More questions?
+  if (session.currentQ < session.questions.length) {
+    const nextQ = session.questions[session.currentQ];
+    let message = `*Question ${session.currentQ + 1} of ${session.questions.length}:*\n`;
+    message += `${nextQ.question}\n\n`;
+    nextQ.options.forEach(o => {
+      message += `${o.value}. ${o.label}\n`;
+    });
+    await sendWhatsAppMessage(from, message);
+  } else {
+    // All answered — calculate score
+    await sendWhatsAppMessage(from,
+      '⏳ Analyzing your responses...'
+    );
+
+    try {
+      const scoreRes = await axios.post(
+        'http://localhost:3000/api/wellness/score',
+        { context: session.context, answers: session.answers }
+      );
+
+      const report = scoreRes.data.report;
+      
+      // Send wellness report
+      let riskEmoji = report.riskLevel === 'High' ? '🔴' 
+        : report.riskLevel === 'Medium' ? '🟡' : '🟢';
+      
+      let message = `${riskEmoji} *Wellness Report for ${session.context.DisplayName}*\n\n`;
+      message += `*Overall Score: ${report.overallScore}/100*\n`;
+      message += `*Risk Level: ${report.riskLevel}*\n\n`;
+      
+      message += `📊 *Category Scores:*\n`;
+      Object.entries(report.categories || {}).forEach(([cat, data]) => {
+        const emoji = data.status === 'Good' ? '✅' 
+          : data.status === 'Fair' ? '⚠️' : '❌';
+        message += `${emoji} ${cat.charAt(0).toUpperCase() + cat.slice(1)}: ${data.score}/100\n`;
+      });
+      
+      message += `\n💡 *Recommendations:*\n`;
+      if (report.recommendations) {
+        Object.entries(report.recommendations).forEach(([key, val]) => {
+          message += `• ${key.charAt(0).toUpperCase() + key.slice(1)}: ${val}\n`;
+        });
+      }
+      
+      if (report.message) {
+        message += `\n${report.message}`;
+      }
+
+      await sendWhatsAppMessage(from, message);
+
+      // HR Actions if needed
+      if (report.riskLevel === 'High' && report.hrActions?.required) {
+        await sendWhatsAppMessage(from,
+          `⚠️ *HR Actions Initiated:*\n` +
+          (report.hrActions.actions || []).map(a => `• ${a}`).join('\n') +
+          `\n\nA follow-up is scheduled in ${report.hrActions.followUpDays} days.`
+        );
+      }
+
+      // Clear session
+      delete wellnessConversations[from];
+
+    } catch (err) {
+      console.error('WhatsApp wellness score error:', err.message);
+      await sendWhatsAppMessage(from,
+        '❌ Could not generate wellness report. Please try again.'
+      );
+      delete wellnessConversations[from];
+    }
   }
 }
