@@ -4321,6 +4321,12 @@ Generate a wellness report. Return ONLY valid JSON:
     console.log(`Wellness Report for ${context.DisplayName}:`);
     console.log(`Score: ${report.overallScore}, Risk: ${report.riskLevel}`);
     
+    // Save to High-Risk list if applicable
+    if (report.riskLevel === 'High') {
+      // For web UI, we might not know the WhatsApp number immediately unless it's in the session
+      saveHighRiskEmployee(context.PersonNumber, context.DisplayName, null);
+    }
+    
     res.json({ report });
 
   } catch (err) {
@@ -4423,6 +4429,10 @@ async function handleWellnessWhatsApp(from, text, context) {
       let riskEmoji = report.riskLevel === 'High' ? '🔴' 
         : report.riskLevel === 'Medium' ? '🟡' : '🟢';
       
+      if (report.riskLevel === 'High') {
+        saveHighRiskEmployee(session.context.PersonNumber, session.context.DisplayName, from);
+      }
+      
       let message = `${riskEmoji} *Wellness Report for ${session.context.DisplayName}*\n\n`;
       message += `*Overall Score: ${report.overallScore}/100*\n`;
       message += `*Risk Level: ${report.riskLevel}*\n\n`;
@@ -4466,5 +4476,48 @@ async function handleWellnessWhatsApp(from, text, context) {
       );
       delete wellnessConversations[from];
     }
+    }
   }
 }
+
+// ─── WELLNESS CRON REMINDERS ─────────────────────────
+const cron = require('node-cron');
+const fs = require('fs');
+const path = require('path');
+const HIGH_RISK_FILE = path.join(__dirname, 'high_risk_employees.json');
+
+function saveHighRiskEmployee(personNumber, displayName, phoneNumber) {
+  let list = [];
+  if (fs.existsSync(HIGH_RISK_FILE)) {
+    try { list = JSON.parse(fs.readFileSync(HIGH_RISK_FILE, 'utf8')); } catch(e){}
+  }
+  const existingIndex = list.findIndex(e => e.personNumber === personNumber);
+  if (existingIndex >= 0) {
+    if (phoneNumber) list[existingIndex].phoneNumber = phoneNumber;
+    list[existingIndex].lastFlagged = new Date().toISOString();
+  } else {
+    list.push({ personNumber, displayName, phoneNumber, lastFlagged: new Date().toISOString() });
+  }
+  fs.writeFileSync(HIGH_RISK_FILE, JSON.stringify(list, null, 2));
+}
+
+// Run daily at 10:00 AM (server time)
+cron.schedule('0 10 * * *', async () => {
+  console.log('⏰ Running daily High-Risk Employee Wellness check...');
+  if (fs.existsSync(HIGH_RISK_FILE)) {
+    const list = JSON.parse(fs.readFileSync(HIGH_RISK_FILE, 'utf8'));
+    for (const emp of list) {
+      if (emp.phoneNumber) {
+        const msg = `🌟 *Daily Wellness Check-in*\n\nHi ${emp.displayName},\n\nThis is your automated check-in. How are you feeling today compared to last week?\n\nReply 'Wellness' to take a quick reassessment.`;
+        try {
+          await sendWhatsAppMessage(emp.phoneNumber, msg);
+          console.log(`✅ Reminder sent to ${emp.displayName} (${emp.phoneNumber})`);
+        } catch(e) {
+          console.error(`❌ Failed to send to ${emp.displayName}:`, e.message);
+        }
+      } else {
+        console.log(`⚠️ Skipping reminder for ${emp.displayName} (No WhatsApp number recorded)`);
+      }
+    }
+  }
+});
