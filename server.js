@@ -470,7 +470,8 @@ app.get('/api/oracle/worker', async (req, res) => {
       NormalHours: assignment?.NormalHours ? `${assignment.NormalHours} ${assignment.Frequency === 'W' ? 'Hours/Week' : assignment.Frequency || ''}`.trim() : 'Not Assigned',
       ActionCode: assignment?.ActionCode || 'Not Assigned',
       CreationDate: worker.CreationDate ? new Date(worker.CreationDate).toLocaleDateString() : 'Not Assigned',
-      LastUpdateDate: worker.LastUpdateDate ? new Date(worker.LastUpdateDate).toLocaleDateString() : 'Not Assigned'
+      LastUpdateDate: worker.LastUpdateDate ? new Date(worker.LastUpdateDate).toLocaleDateString() : 'Not Assigned',
+      WorkEmail: worker.WorkEmail || `employee_${worker.PersonNumber}@oracle.com`
     });
   } catch (error) {
     console.error('Oracle Worker Error:', error.response?.data || error.message);
@@ -4079,7 +4080,7 @@ app.get('/api/wellness/context', async (req, res) => {
 
     // Step 1: Get worker basic details
     const workerRes = await axios.get(
-      `${oracleBaseUrl}/hcmRestApi/resources/11.13.18.05/workers?q=PersonNumber%3D${personNumber}&expand=workRelationships.assignments.managers&fields=PersonId,PersonNumber,DisplayName,workRelationships`,
+      `${oracleBaseUrl}/hcmRestApi/resources/11.13.18.05/workers?q=PersonNumber%3D${personNumber}&expand=workRelationships.assignments.managers&fields=PersonId,PersonNumber,DisplayName,WorkEmail,workRelationships`,
       { httpsAgent: agent, headers: { 'Authorization': oracleAuth } }
     );
 
@@ -4147,7 +4148,8 @@ app.get('/api/wellness/context', async (req, res) => {
       AbsenceRisk: recentAbsences > 3 ? 'High' 
         : recentAbsences > 1 ? 'Medium' : 'Low',
       WorkRelationshipStart: workRel?.StartDate || 'N/A',
-      LegalEmployer: workRel?.LegalEmployerName || 'N/A'
+      LegalEmployer: workRel?.LegalEmployerName || 'N/A',
+      WorkEmail: worker.WorkEmail || `employee_${personNumber}@example.com`
     };
 
     console.log('Employee context built:', JSON.stringify(context));
