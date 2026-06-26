@@ -4209,7 +4209,7 @@ Return ONLY valid JSON in this exact format:
 }`;
 
     const geminiRes = await axios.post(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent?key=${GEMINI_API_KEY}`,
       {
         contents: [{ parts: [{ text: prompt }] }],
         generationConfig: { temperature: 0.7, maxOutputTokens: 2000, responseMimeType: "application/json" }
@@ -4237,8 +4237,13 @@ Return ONLY valid JSON in this exact format:
 
   } catch (err) {
     console.error('Generate questions error:', err.message);
-    if (err.response && err.response.status === 429) {
-      return res.status(429).json({ error: "AI Rate Limit Exceeded. Please wait a minute before trying again." });
+    if (err.response) {
+      if (err.response.status === 429) {
+        return res.status(429).json({ error: "AI Rate Limit Exceeded. Please wait a minute before trying again." });
+      }
+      if (err.response.status === 503) {
+        return res.status(503).json({ error: "The AI is currently experiencing high demand. Please try again later." });
+      }
     }
     
     // Fallback questions if Gemini fails for other reasons
@@ -4337,7 +4342,7 @@ Generate a wellness report. Return ONLY valid JSON:
 }`;
 
     const geminiRes = await axios.post(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent?key=${GEMINI_API_KEY}`,
       {
         contents: [{ parts: [{ text: prompt }] }],
         generationConfig: { temperature: 0.3, maxOutputTokens: 2000, responseMimeType: "application/json" }
