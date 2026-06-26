@@ -4217,7 +4217,15 @@ Return ONLY valid JSON in this exact format:
       { headers: { 'Content-Type': 'application/json' } }
     );
 
-    const responseText = geminiRes.data.candidates[0].content.parts[0].text;
+    const candidate = geminiRes.data.candidates[0];
+    if (!candidate.content || !candidate.content.parts || !candidate.content.parts[0].text) {
+      if (candidate.finishReason === 'SAFETY') {
+        return res.status(400).json({ error: "The provided health problem was flagged by the AI safety filters. Please try rephrasing." });
+      }
+      throw new Error('Empty response from Gemini');
+    }
+
+    const responseText = candidate.content.parts[0].text;
     console.log('Gemini questions response:', responseText);
 
     // Parse JSON from response
@@ -4229,8 +4237,11 @@ Return ONLY valid JSON in this exact format:
 
   } catch (err) {
     console.error('Generate questions error:', err.message);
+    if (err.response && err.response.status === 429) {
+      return res.status(429).json({ error: "AI Rate Limit Exceeded. Please wait a minute before trying again." });
+    }
     
-    // Fallback questions if Gemini fails
+    // Fallback questions if Gemini fails for other reasons
     res.json({
       questions: [
         { id: 1, question: "How many hours of sleep do you get on average per night?", category: "sleep",
