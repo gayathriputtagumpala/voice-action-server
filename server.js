@@ -4067,10 +4067,11 @@ app.get('/api/wellness/context', async (req, res) => {
     const { personNumber } = req.query;
     const oracleAuth = req.headers['x-oracle-auth'] ||
       process.env.ORACLE_AUTH;
-    const oracleBaseUrl = req.headers['x-oracle-url'] ||
-      process.env.ORACLE_BASE_URL;
+    let oracleBaseUrl = req.headers['x-oracle-url'] || process.env.ORACLE_BASE_URL;
+    oracleBaseUrl = oracleBaseUrl.replace(/\/$/, '');
     const absenceAuth = process.env.ABSENCE_ORACLE_AUTH || process.env.ORACLE_AUTH;
-    const absenceUrl = process.env.ABSENCE_ORACLE_URL || process.env.ORACLE_BASE_URL;
+    let absenceUrl = process.env.ABSENCE_ORACLE_URL || process.env.ORACLE_BASE_URL;
+    absenceUrl = absenceUrl.replace(/\/$/, '');
 
     console.log('=== GET WELLNESS CONTEXT ===');
     console.log('Person Number:', personNumber);
@@ -4080,7 +4081,7 @@ app.get('/api/wellness/context', async (req, res) => {
 
     // Step 1: Get worker basic details
     const workerRes = await axios.get(
-      `${oracleBaseUrl}/hcmRestApi/resources/11.13.18.05/workers?q=PersonNumber%3D${personNumber}&expand=workRelationships.assignments.managers&fields=PersonId,PersonNumber,DisplayName,WorkEmail,workRelationships`,
+      `${oracleBaseUrl}/hcmRestApi/resources/11.13.18.05/workers?q=PersonNumber%3D${personNumber}&expand=workRelationships.assignments.managers`,
       { httpsAgent: agent, headers: { 'Authorization': oracleAuth } }
     );
 
@@ -4164,7 +4165,7 @@ app.get('/api/wellness/context', async (req, res) => {
 // ─── WELLNESS: GENERATE QUESTIONS ────────────────────
 app.post('/api/wellness/questions', async (req, res) => {
   try {
-    const { context } = req.body;
+    const { context, healthProblem } = req.body;
     const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
     console.log('=== GENERATE WELLNESS QUESTIONS ===');
@@ -4179,9 +4180,10 @@ EMPLOYEE CONTEXT:
 - Total Absence Days: ${context.TotalAbsenceDays}
 - Absence Risk: ${context.AbsenceRisk}
 - Location: ${context.Location}
+- Reported Health Problem: ${healthProblem || "None reported"}
 
 RULES:
-1. Questions must be personalized based on context
+1. Questions must be personalized based on context and the specific Reported Health Problem (if any). If a health problem is reported, tailor at least 3 questions directly to assessing its impact and their well-being.
 2. If TenureMonths < 3: include onboarding/adaptation question
 3. If RecentAbsences > 2: include health/wellbeing question  
 4. If TotalAbsenceDays > 10: include stress/burnout question
@@ -4248,10 +4250,30 @@ Return ONLY valid JSON in this exact format:
   }
 });
 
+// ─── WELLNESS: SEND EMAIL ─────────────────────────────
+app.post('/api/wellness/send-email', async (req, res) => {
+  try {
+    const { email, name, score, risk, healthProblem } = req.body;
+    console.log('=== SENDING WELLNESS EMAIL ===');
+    console.log(`To: ${email}`);
+    console.log(`Subject: Wellness Assessment Results for ${name}`);
+    console.log(`Score: ${score}, Risk: ${risk}`);
+    if (healthProblem) console.log(`Health Problem: ${healthProblem}`);
+    
+    // In a real application, you would integrate with an SMTP server or email API like SendGrid here.
+    // For now, we mock a successful email sending.
+    
+    res.json({ success: true, message: 'Email sent successfully' });
+  } catch (error) {
+    console.error('Send email error:', error.message);
+    res.status(500).json({ error: 'Failed to send email' });
+  }
+});
+
 // ─── WELLNESS: CALCULATE SCORE ────────────────────────
 app.post('/api/wellness/score', async (req, res) => {
   try {
-    const { context, answers } = req.body;
+    const { context, answers, healthProblem } = req.body;
     const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
     console.log('=== CALCULATE WELLNESS SCORE ===');
@@ -4265,6 +4287,7 @@ EMPLOYEE CONTEXT:
 - Tenure: ${context.TenureMonths} months
 - Recent Absences: ${context.RecentAbsences} in last 3 months
 - Total Absence Days: ${context.TotalAbsenceDays}
+- Reported Health Problem: ${healthProblem || "None reported"}
 
 SURVEY ANSWERS:
 ${answers.map(a => `Q: ${a.question} (${a.category})\nA: ${a.answer} (score: ${a.value}/4)`).join('\n\n')}
