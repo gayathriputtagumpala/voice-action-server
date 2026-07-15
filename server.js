@@ -1847,7 +1847,7 @@ async function handleWhatsAppText(from, text) {
           whatsappSessions[from] = whatsappSessions[from] || {};
           whatsappSessions[from].oracleAuth = authHeader;
           whatsappSessions[from].username = username;
-          await sendWhatsAppMessage(from, `✅ Login successful! Welcome, ${username}.\nYou can now perform actions.`);
+          await sendWhatsAppMessage(from, `✅ Login successful! Welcome, ${username}.\n\n⚠️ *SECURITY NOTICE*: Please delete your previous message containing your password to keep your credentials safe.\n\nYou can now perform actions.`);
         }
       } catch (err) {
         if (err.response?.status === 401) {
@@ -1857,7 +1857,7 @@ async function handleWhatsAppText(from, text) {
           whatsappSessions[from] = whatsappSessions[from] || {};
           whatsappSessions[from].oracleAuth = `Basic ${Buffer.from(`${username}:${password}`).toString('base64')}`;
           whatsappSessions[from].username = username;
-          await sendWhatsAppMessage(from, `✅ Login successful! Welcome, ${username}.`);
+          await sendWhatsAppMessage(from, `✅ Login successful! Welcome, ${username}.\n\n⚠️ *SECURITY NOTICE*: Please delete your previous message containing your password to keep your credentials safe.`);
         } else {
           await sendWhatsAppMessage(from, '❌ Login failed due to a connection or server error.');
         }
