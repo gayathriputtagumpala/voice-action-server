@@ -1868,7 +1868,8 @@ async function handleWhatsAppText(from, text) {
     // CHECK AUTHENTICATION FOR OTHER COMMANDS
     const isHelp = lower === 'hi' || lower === 'hello' || lower === 'help' || lower === 'start';
     if (!isHelp && (!whatsappSessions[from] || !whatsappSessions[from].oracleAuth)) {
-      await sendWhatsAppMessage(from, '🔒 *Authentication Required*\n\nPlease login to Oracle Fusion to perform this action.\n\nReply with:\n*login [username] [password]*');
+      const serverUrl = req.headers.host ? `https://${req.headers.host}` : 'https://voice-action-server.onrender.com';
+      await sendWhatsAppMessage(from, `🔒 *Authentication Required*\n\nPlease click the link below to securely login to Oracle Fusion:\n${serverUrl}/wa-login?phone=${from}`);
       return;
     }
 
@@ -3564,6 +3565,74 @@ async function sendWhatsAppMessage(to, message) {
     console.error('Send WhatsApp error:', err.response?.data || err.message);
   }
 }
+
+app.get('/wa-login', (req, res) => {
+  const phone = req.query.phone || '';
+  res.send(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>Secure Login</title>
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f9ff; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+        .card { background: white; padding: 32px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); width: 100%; max-width: 320px; }
+        h2 { text-align: center; color: #0f172a; margin-top: 0; margin-bottom: 24px; font-size: 22px; }
+        label { font-size: 14px; font-weight: 600; color: #475569; display: block; margin-bottom: 8px; }
+        input { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; margin-bottom: 16px; box-sizing: border-box; font-size: 16px; outline: none; }
+        input:focus { border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59,130,246,0.2); }
+        button { width: 100%; padding: 12px; background: #3b82f6; color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer; transition: background 0.2s; }
+        button:hover { background: #2563eb; }
+        .secure-badge { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 12px; color: #10b981; font-weight: 600; margin-bottom: 16px; }
+      </style>
+    </head>
+    <body>
+      <div class="card">
+        <h2>Oracle Fusion</h2>
+        <div class="secure-badge">🔒 Secure Login</div>
+        <form method="POST" action="/wa-login">
+          <input type="hidden" name="phone" value="${phone}">
+          <label>Username</label>
+          <input type="text" name="username" required autocomplete="username">
+          <label>Password</label>
+          <input type="password" name="password" required autocomplete="current-password">
+          <button type="submit">Login</button>
+        </form>
+      </div>
+    </body>
+    </html>
+  `);
+});
+
+app.post('/wa-login', express.urlencoded({ extended: true }), async (req, res) => {
+  const { phone, username, password } = req.body;
+  if (!phone || !username || !password) {
+    return res.send('<h2 style="font-family:sans-serif;text-align:center;color:#ef4444;margin-top:40px;">Error: Missing credentials or phone number.</h2>');
+  }
+  try {
+    const authHeader = 'Basic ' + Buffer.from(`${username}:${password}`).toString('base64');
+    const testedUrl = `${oracleUrl}/hcmRestApi/resources/11.13.18.05/workers?limit=1`;
+    const response = await axios.get(testedUrl, { headers: { 'Authorization': authHeader }, timeout: 15000 });
+    
+    whatsappSessions[phone] = whatsappSessions[phone] || {};
+    whatsappSessions[phone].oracleAuth = authHeader;
+    whatsappSessions[phone].username = username;
+    
+    await sendWhatsAppMessage(phone, `✅ Secure login successful! Welcome, ${username}.\n\nYou can now perform actions.`);
+    res.send('<div style="font-family:sans-serif;text-align:center;margin-top:40px;"><h2>✅ Login Successful!</h2><p style="color:#64748b;">You can close this window and return to WhatsApp.</p></div>');
+  } catch (err) {
+    if (err.response?.status === 403) {
+      whatsappSessions[phone] = whatsappSessions[phone] || {};
+      whatsappSessions[phone].oracleAuth = 'Basic ' + Buffer.from(`${username}:${password}`).toString('base64');
+      whatsappSessions[phone].username = username;
+      await sendWhatsAppMessage(phone, `✅ Secure login successful! Welcome, ${username}.\n\nYou can now perform actions.`);
+      res.send('<div style="font-family:sans-serif;text-align:center;margin-top:40px;"><h2>✅ Login Successful!</h2><p style="color:#64748b;">You can close this window and return to WhatsApp.</p></div>');
+    } else {
+      res.send('<div style="font-family:sans-serif;text-align:center;margin-top:40px;"><h2 style="color:#ef4444;">❌ Login Failed</h2><p style="color:#64748b;">Invalid username or password.</p><button onclick="window.history.back()" style="padding:10px 20px;background:#3b82f6;color:white;border:none;border-radius:6px;cursor:pointer;margin-top:10px;">Go Back</button></div>');
+    }
+  }
+});
 
 app.listen(port, () => {
   console.log(`Voice Action Server listening at http://localhost:${port}`);
