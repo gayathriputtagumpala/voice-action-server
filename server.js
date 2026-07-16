@@ -1869,7 +1869,8 @@ async function handleWhatsAppText(from, text) {
     const isHelp = lower === 'hi' || lower === 'hello' || lower === 'help' || lower === 'start';
     if (!isHelp && (!whatsappSessions[from] || !whatsappSessions[from].oracleAuth)) {
       const serverUrl = req.headers.host ? `https://${req.headers.host}` : 'https://voice-action-server.onrender.com';
-      await sendWhatsAppMessage(from, `🔒 *Authentication Required*\n\nPlease click the link below to securely login to Oracle Fusion:\n${serverUrl}/wa-login?phone=${from}`);
+      const prompt = `🔒 *Authentication Required*\n\nPlease login to Oracle Fusion to perform this action.\n\n*Option 1 (Secure):* Click this link to login securely:\n${serverUrl}/wa-login?phone=${from}\n\n*Option 2:* Reply directly in chat with:\nlogin [username] [password]`;
+      await sendWhatsAppMessage(from, prompt);
       return;
     }
 
